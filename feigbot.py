@@ -21,7 +21,7 @@ async def on_command_error(ctx, error):
 
 @bot.command(name="perf", help="Use this command to see hpow you did last game")
 async def flink_sjekk(ctx):
-    steam_id = stratz.get_steam_id(ctx.message.author)
+    steam_id = get_steam_id(ctx.message.author)
     match = stratz.get_match(stratz.get_previous_match_id(steam_id))
     response = ""
 
@@ -34,7 +34,6 @@ async def flink_sjekk(ctx):
             continue
 
         imp = player.get("imp")
-        print(imp)
         if imp <= 0:
             response = "You did bad"
         else:
@@ -44,7 +43,7 @@ async def flink_sjekk(ctx):
 
 @bot.command(name='blame', help="Assign blame to your worst performing teammate")
 async def blame(ctx):
-    steam_id = stratz.get_steam_id(ctx.message.author)
+    steam_id = get_steam_id(ctx.message.author)
     match = stratz.get_match(stratz.get_previous_match_id(steam_id))
 
     lowest_imp_radiant = 100
@@ -53,6 +52,7 @@ async def blame(ctx):
     worst_player_dire = ""
 
     response = ""
+    worst_player_user = ""
 
     for player in match.get("data").get("match").get("players"):
         imp = player.get("imp")
@@ -70,7 +70,6 @@ async def blame(ctx):
 
         if player.get("steamAccountId") != steam_id:
             player_is_radiant = is_radiant
-
         
     if player_is_radiant:
         worst_player = worst_player_radiant

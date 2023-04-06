@@ -1,8 +1,8 @@
 import requests
 import os
-from tinydb import TinyDB, Query
 from dotenv import load_dotenv
 
+load_dotenv()
 STRATZ_TOKEN = os.getenv("STRATZ_TOKEN")
 headers = {"Authorization": f"Bearer {STRATZ_TOKEN}"}
 stratz_url = "https://api.stratz.com/graphql"
