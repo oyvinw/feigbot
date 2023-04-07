@@ -1,6 +1,7 @@
 import os
 import discord
 import stratz
+import openaiclient
 from dotenv import load_dotenv
 from discord.ext import commands
 from tinydb import TinyDB, Query
@@ -19,7 +20,7 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.send("Jeg har ikke tillit til deg")
 
-@bot.command(name="perf", help="Use this command to see hpow you did last game")
+@bot.command(name="perf", help="Use this command to see how you did last game")
 async def flink_sjekk(ctx):
     steam_id = get_steam_id(ctx.message.author)
     match = stratz.get_match(stratz.get_previous_match_id(steam_id))
@@ -35,11 +36,13 @@ async def flink_sjekk(ctx):
 
         imp = player.get("imp")
         if imp <= 0:
-            response = "You did bad"
+            response = f"You did bad - here's a tip for your next game with {player.get('hero').get('displayName')}:"
+            
         else:
-            response = "You did well"
-
-        await ctx.send(response)
+            response = f"You did well - here's a tip for your next game with {player.get('hero').get('displayName')}:"
+        
+        dota_hero_tips = await openaiclient.get_dota2_tip_gpt(player.get("hero").get("displayName"))
+        await ctx.send(response + dota_hero_tips)
 
 @bot.command(name='blame', help="Assign blame to your worst performing teammate")
 async def blame(ctx):
