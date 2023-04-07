@@ -6,10 +6,11 @@ from langchain import LLMChain
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+legend = open("legend.txt")
 
 async def prompt_gpt_apology(sinner, heroname):
     llm = OpenAI(model_name="text-davinci-003")
-    return llm(f"Write an apologetic short speech about a bad dota 2 match. Write as a player named {sinner}, and include the hero {heroname}")
+    return llm(f"Write an apologetic short speech about a bad dota 2 match. Write as a player named {sinner}, and include the hero {heroname}.")
 
 async def prompt_gpt_herotip(heroname):
     llm = OpenAI(model_name="text-davinci-003")
@@ -21,3 +22,18 @@ async def prompt_gpt_herotip(heroname):
     chain = LLMChain(llm=llm,prompt=prompt)
     input = {'k': 1, 'heroname': heroname}
     return chain.run(input)
+
+async def prompt_analyse(match):
+    llm = OpenAI(model_name="text-davinci-003")
+    return llm(f"{default_prompt(match)} write a short and witty analysis of the game. You may include some emojis and GIFs from discord.")
+
+async def prompt_blame(match, lang):
+    llm = OpenAI(model_name="text-davinci-003")
+    return llm(f"{default_prompt(match)} write a short witty comment about what player is to blame for the loss. You may include some emojis and GIFs from discord. Write it in the language that has language code {lang}.")
+
+async def prompt_gpt_tips(match, hero):
+    llm = OpenAI(model_name="text-davinci-003")
+    return llm(f"{default_prompt(match)} write a short witty comment about how {hero} could improve. Include some general tips. You may include some emojis and GIFs from discord.")
+
+def default_prompt(match):
+    return f"Here is data collected about a Dota 2 game from the Stratz API: \n\n {match} and here is some information on how to interpret the data: \n\n{legend.read()} \n\nBased on this data and the interpretation,"

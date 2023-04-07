@@ -25,17 +25,37 @@ def get_previous_match_id(steam_id):
 def get_match(match_id):
     match_query = """
     {
-        match(id: %s) {
-            parsedDateTime,
-            players {
-                steamAccountId,
-                imp,
-                isRadiant,
-                hero {
-                    displayName,
-                    }
+    match(id: %s) {
+        parsedDateTime
+        didRadiantWin
+        durationSeconds
+        firstBloodTime
+        averageRank
+        bottomLaneOutcome
+        midLaneOutcome
+        topLaneOutcome
+        players {
+            steamAccountId
+            imp
+            isRadiant
+            kills
+            deaths
+            assists
+            goldPerMinute
+            numLastHits
+            numDenies
+            roleBasic
+            intentionalFeeding
+            lane
+            heroDamage
+            heroHealing
+            towerDamage
+            networth
+            hero {
+                displayName
                 }
             }
+        }
     }
     """ % (
         match_id

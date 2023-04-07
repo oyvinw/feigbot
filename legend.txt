@@ -1,0 +1,5 @@
+imp: IMP stands for Individual Match Performance. Each match, every player earns an IMP score for their performance. This score can vary between -100 and +100, and represents the win rate probability that each player’s performance contributed over the course of the match.
+parsedDateTime: Ignore this field
+durationSeconds: This data is in seconds, convert it to hours and minutes
+firstBloodTime: This data is in seconds, convert it to minutes
+averageRank: The average rank of the players, ignore this data if it is 'NONE'

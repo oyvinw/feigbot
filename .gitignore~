@@ -1,7 +1,6 @@
 db.json
 .un
-.un~
-*~
+.~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

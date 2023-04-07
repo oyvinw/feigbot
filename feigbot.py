@@ -18,7 +18,7 @@ def get_steam_id(discord_user):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
-        await ctx.send("Jeg har ikke tillit til deg")
+        await ctx.reply("Jeg har ikke tillit til deg")
 
 @bot.command(name="perf", help="Use this command to see how you did last game")
 async def flink_sjekk(ctx):
@@ -27,7 +27,7 @@ async def flink_sjekk(ctx):
     response = ""
 
     if match == []:
-        await ctx.send("Replay is not parsed yet, try again in a minute")
+        await ctx.reply("Replay is not parsed yet, try again in a minute")
         return
 
     for player in match.get("data").get("match").get("players"):    
@@ -44,44 +44,26 @@ async def flink_sjekk(ctx):
             response = f"You did well - here's a tip for your next game with {hero}:"
 
         dota_hero_tips = await openaiclient.prompt_gpt_herotip(hero)
-        await ctx.send(response + dota_hero_tips)
+        await ctx.reply(response + dota_hero_tips)
 
-@bot.command(name='blame', help="Assign blame to your worst performing teammate")
-async def blame(ctx):
+@bot.command(name="tips", help="Use this command to apologize for your throws last match")
+async def tips(ctx):
     steam_id = get_steam_id(ctx.message.author)
     match = stratz.get_match(stratz.get_previous_match_id(steam_id))
 
-    lowest_imp_radiant = 100
-    lowest_imp_dire = 100
-    worst_player_radiant = ""
-    worst_player_dire = ""
+    if match == []:
+        await ctx.send("Replay is not parsed yet, try again in a minute")
+        return
 
-    response = ""
-    worst_player_user = ""
-
-    for player in match.get("data").get("match").get("players"):
-        imp = player.get("imp")
-        is_radiant = player.get('isRadiant')
-        player_is_radiant = False
-
-        if is_radiant:
-            if imp < lowest_imp_radiant:
-                lowest_imp_radiant = imp
-                worst_player_radiant = player.get("hero").get("displayName")
-        else:
-            if imp < lowest_imp_dire:
-                lowest_imp_dire = imp
-                worst_player_dire = player.get("hero").get("displayName")
-
+    for player in match.get("data").get("match").get("players"):    
         if player.get("steamAccountId") != steam_id:
-            player_is_radiant = is_radiant
-        
-    if player_is_radiant:
-        worst_player = worst_player_radiant
-    else:
-        worst_player = worst_player_dire
+            continue
 
-    await ctx.send(f"{worst_player} is to blame")
+        hero = player.get("hero").get("displayName")
+        tips = await openaiclient.prompt_gpt_tips(match, hero)
+
+        await ctx.send(tips)
+
 
 @bot.command(name="sry", help="Use this command to apologize for your throws last match")
 async def apologize(ctx):
@@ -97,9 +79,48 @@ async def apologize(ctx):
             continue
 
         hero = player.get("hero").get("displayName")
-        apology = await openaiclient.prompt_gpt_apology(ctx.message.author, hero)
+        apology = await openaiclient.prompt_gpt_apology(ctx.message.author.name, hero)
 
         await ctx.send(apology)
+
+def get_previous_match_from_author(author):
+    steam_id = get_steam_id(author)
+    match = stratz.get_match(stratz.get_previous_match_id(steam_id))
+
+
+@bot.command(name="anal", help="Analyse the previous game")
+async def analyse(ctx):
+    steam_id = get_steam_id(ctx.message.author)
+    match = stratz.get_match(stratz.get_previous_match_id(steam_id))
+
+    if match == []:
+        await ctx.reply("Replay is not parsed yet, try again in a minute")
+        return
+
+    analysis = await openaiclient.prompt_analyse(match)
+    await ctx.reply(analysis)
+
+@bot.command(name="analmatch", help="Analyse a specific game")
+async def analyse(ctx, match_id):
+    match = stratz.get_match(match_id)
+    if match == []:
+        await ctx.reply("Replay is not parsed yet, try again in a minute")
+        return
+
+    analysis = await openaiclient.prompt_analyse(match)
+    await ctx.reply(analysis)
+
+@bot.command(name="blame", help="Find out who is to blame for your most recent loss")
+async def blame(ctx, lang = "eng"):
+    steam_id = get_steam_id(ctx.message.author)
+    match = stratz.get_match(stratz.get_previous_match_id(steam_id))
+
+    if match == []:
+        await ctx.reply("Replay is not parsed yet, try again in a minute")
+        return
+
+    blame = await openaiclient.prompt_blame(match, lang)
+    await ctx.reply(blame)
 
 @bot.command(name='reg')
 async def reg(ctx, steamAcc: int):
