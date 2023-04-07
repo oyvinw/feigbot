@@ -3,3 +3,4 @@ parsedDateTime: Ignore this field
 durationSeconds: This data is in seconds, convert it to hours and minutes
 firstBloodTime: This data is in seconds, convert it to minutes
 averageRank: The average rank of the players, ignore this data if it is 'NONE'
+itemId0, itemId1, itemId2, itemId3, itemId4, itemId5: The items of the player at the end of the game

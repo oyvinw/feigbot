@@ -10,6 +10,7 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 db = TinyDB('db.json')
+stratz.update_items()
 
 class MatchData:
     def __init__(self, match, steam_id: int):
@@ -85,6 +86,19 @@ async def apologize(ctx, lang = "eng"):
 
         hero = player.get("hero").get("displayName")
         apology = await openaiclient.prompt_gpt_apology(md.match, ctx.message.author.name, hero, lang)
+
+        await ctx.send(apology)
+
+@bot.command(name="notsry", help="Use this command to justify yourself")
+async def not_sorry(ctx, lang = "eng"):
+    md = await get_previous_match(ctx)
+
+    for player in md.match.get("data").get("match").get("players"):    
+        if player.get("steamAccountId") != md.steam_id:
+            continue
+
+        hero = player.get("hero").get("displayName")
+        apology = await openaiclient.prompt_gpt_not_apology(md.match, ctx.message.author.name, hero, lang)
 
         await ctx.send(apology)
 
