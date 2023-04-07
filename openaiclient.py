@@ -7,11 +7,15 @@ from langchain import LLMChain
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
-async def get_dota2_tip_gpt(heroname):
+async def prompt_gpt_apology(sinner, heroname):
+    llm = OpenAI(model_name="text-davinci-003")
+    return llm(f"Write an apologetic short speech about a bad dota 2 match. Write as a player named {sinner}, and include the hero {heroname}")
+
+async def prompt_gpt_herotip(heroname):
     llm = OpenAI(model_name="text-davinci-003")
     prompt = PromptTemplate(
         input_variables=["heroname"],
-        template="Give me a pro-tip I can make use of when playing {heroname} in Dota 2?"
+        template="Write me a pro-tip for improving my playstyle as {heroname} in Dota 2. Be short."
     )
 
     chain = LLMChain(llm=llm,prompt=prompt)

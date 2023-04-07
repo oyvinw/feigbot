@@ -35,13 +35,15 @@ async def flink_sjekk(ctx):
             continue
 
         imp = player.get("imp")
+        hero = player.get('hero').get('displayName')
+        
         if imp <= 0:
-            response = f"You did bad - here's a tip for your next game with {player.get('hero').get('displayName')}:"
+            response = f"You did bad - here's a tip for your next game with {hero}:"
             
         else:
-            response = f"You did well - here's a tip for your next game with {player.get('hero').get('displayName')}:"
-        
-        dota_hero_tips = await openaiclient.get_dota2_tip_gpt(player.get("hero").get("displayName"))
+            response = f"You did well - here's a tip for your next game with {hero}:"
+
+        dota_hero_tips = await openaiclient.prompt_gpt_herotip(hero)
         await ctx.send(response + dota_hero_tips)
 
 @bot.command(name='blame', help="Assign blame to your worst performing teammate")
@@ -80,6 +82,24 @@ async def blame(ctx):
         worst_player = worst_player_dire
 
     await ctx.send(f"{worst_player} is to blame")
+
+@bot.command(name="sry", help="Use this command to apologize for your throws last match")
+async def apologize(ctx):
+    steam_id = get_steam_id(ctx.message.author)
+    match = stratz.get_match(stratz.get_previous_match_id(steam_id))
+
+    if match == []:
+        await ctx.send("Replay is not parsed yet, try again in a minute")
+        return
+
+    for player in match.get("data").get("match").get("players"):    
+        if player.get("steamAccountId") != steam_id:
+            continue
+
+        hero = player.get("hero").get("displayName")
+        apology = await openaiclient.prompt_gpt_apology(ctx.message.author, hero)
+
+        await ctx.send(apology)
 
 @bot.command(name='reg')
 async def reg(ctx, steamAcc: int):
