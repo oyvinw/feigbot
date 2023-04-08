@@ -1,7 +1,9 @@
 import os
 import discord
 import stratz
+import voice
 import openaiclient
+import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
 from tinydb import TinyDB, Query
@@ -11,6 +13,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
 db = TinyDB('db.json')
 stratz.update_items()
+
 
 class MatchData:
     def __init__(self, match, steam_id: int):
@@ -128,5 +131,21 @@ async def reg(ctx, steamAcc: int):
     db.insert({'discord_user':f'{ctx.message.author}', 'steam_user_id_32': steamAcc})
 
     await ctx.reply('You have been successfully registered')
+
+@bot.command(name="vc-join")
+async def vc_join(ctx):
+    voice_client, joined = voice.get_or_create_voice_client(ctx)
+    if voice_client is None:
+        await ctx.reply("You are not connected to a voice channel. Connect to the voice channel you want me to join and try the command again")
+    elif ctx.user.voice and voice_client.channel.id != ctx.user.voice.channel.id:
+        old_channel_name = voice_client.channel.name
+        await voice_client.disconnect()
+        voice_client = await ctx.user.voice.channel.connect()
+        new_channel_name = voice_client.channel.name
+        guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.utcnow())
+        await ctx.reply(f'Switched from #{old_channel_name} to #{new_channel_name}!')
+    else:
+        await ctx.reply("Connected to voice channel!")
+        guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.utcnow())
 
 bot.run(TOKEN)
