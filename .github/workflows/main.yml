@@ -8,7 +8,7 @@ on:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
-
+    
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
@@ -29,11 +29,11 @@ jobs:
         
   deploy:
     runs-on: ubuntu-latest
-    
+    needs: build_and_push
     steps:
     - name: Check out repository
       uses: actions/checkout@v2
-
+      
     - name: Setup SSH
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -54,7 +54,7 @@ jobs:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_IMAGE_REPOSITORY: ${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}
       run: |
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_CONTAINER_REGISTRY:latest"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull zanmato1106/feigbot-images:latest"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker stop feigbot || true"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker rm feigbot || true"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN \ -e STRATZ_TOKEN=$STRATZ_TOKEN \ -e OPENAI_API_KEY=$OPENAI_API_KEY $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGE_REPOSITORY:latest"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN \ -e STRATZ_TOKEN=$STRATZ_TOKEN \ -e OPENAI_API_KEY=$OPENAI_API_KEY zanmato1106/feigbot-images:latest"
