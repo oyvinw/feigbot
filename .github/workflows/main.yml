@@ -53,8 +53,9 @@ jobs:
         STRATZ_TOKEN: ${{ secrets.STRATZ_TOKEN }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         SSH_SERVER_USER: ${{ secrets.SSH_SERVER_USER }}
+        SSH_SERVER_IP: ${{ secrets.SSH_SERVER_IP }}
       run: |
-        ssh @YOUR_SERVER_IP "docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_CONTAINER_REGISTRY:latest"
-        ssh YOUR_SERVER_USER@YOUR_SERVER_IP "docker stop feigbot || true"
-        ssh YOUR_SERVER_USER@YOUR_SERVER_IP "docker rm feigbot || true"
-        ssh YOUR_SERVER_USER@YOUR_SERVER_IP "docker run -d --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN STRATZ_TOKEN=$STRATZ_TOKEN OPENAI_API_KEY=$OPENAI_API_KEY $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGE_REPOSITORY:latest"
+        ssh $SSH_SERVER_IP "docker pull $DOCKERHUB_USERNAME/$DOCKERHUB_CONTAINER_REGISTRY:latest"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker stop feigbot || true"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker rm feigbot || true"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN STRATZ_TOKEN=$STRATZ_TOKEN OPENAI_API_KEY=$OPENAI_API_KEY $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGE_REPOSITORY:latest"
