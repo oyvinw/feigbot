@@ -24,7 +24,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: $DOCKERHUB_USERNAME/$DOCKERHUB_IMAGE_REPOSITORY:latest
+        tags: "$DOCKERHUB_USERNAME/$DOCKERHUB_IMAGE_REPOSITORY:latest"
         
         
   deploy:
