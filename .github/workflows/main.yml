@@ -16,12 +16,6 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v1
       
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
     - name: Build and push Docker image
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -30,7 +24,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: zanmato1106/feigbot-images:latest
+        tags: zanmato1106/feigbot-img:latest
         
         
   deploy:
@@ -60,7 +54,7 @@ jobs:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
         DOCKERHUB_IMAGE_REPOSITORY: ${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}
       run: |
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull zanmato1106/feigbot-images:latest"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull zanmato1106/feigbot-img:latest"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker stop feigbot || true"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker rm feigbot || true"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN \ -e STRATZ_TOKEN=$STRATZ_TOKEN \ -e OPENAI_API_KEY=$OPENAI_API_KEY zanmato1106/feigbot-images:latest"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN \ -e STRATZ_TOKEN=$STRATZ_TOKEN \ -e OPENAI_API_KEY=$OPENAI_API_KEY zanmato1106/feigbot-img:latest"
