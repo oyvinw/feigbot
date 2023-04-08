@@ -61,7 +61,7 @@ jobs:
         DOCKERHUB_IMAGE_REPOSITORY: ${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
       run: |
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "$DOCKERHUB_TOKEN | docker login --username $DOCKERHUB_USERNAME --password-stdin"
+        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "echo $DOCKERHUB_TOKEN | docker login --username $DOCKERHUB_USERNAME --password-stdin"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull zanmato1106/feigbot-img:latest"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker stop feigbot || true"
         ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker rm feigbot || true"
