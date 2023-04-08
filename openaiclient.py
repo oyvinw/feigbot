@@ -32,9 +32,12 @@ async def prompt_analyse(match, lang):
     llm = OpenAI(model_name=model)
     return llm(f"{default_prompt(match)} write a 2-3 paragraph witty analysis of the game. You may write about players item choices, specific lane outcomes or anything else that could be interesting. You may include some emojis from discord. {lang_preset(lang)}")
 
-async def prompt_blame(match, lang):
+async def prompt_blame(match, lang, emoji = False):
     llm = OpenAI(model_name=model)
-    return llm(f"{default_prompt(match)} write a short and witty comment about what player is to blame for the loss. You may include some emojis from discord. {lang_preset(lang)}")
+    emoji_info = ""
+    if emoji:
+        emoji_info = "You may include some emojis from discord."
+    return llm(f"{default_prompt(match)} write a short and witty comment about what player is to blame for the loss. {emoji_info} {lang_preset(lang)}")
 
 async def prompt_gpt_tips(match, hero, lang):
     llm = OpenAI(model_name=model)
