@@ -50,19 +50,18 @@ jobs:
         chmod 600 ~/.ssh/id_ed25519
         echo "$SSH_SERVER_IP ecdsa-sha2-nistp256 $(ssh-keyscan $SSH_SERVER_IP 2>/dev/null)" > ~/.ssh/known_hosts
 
-    - name: Deploy Discord Bot
-      env:
-        DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-        STRATZ_TOKEN: ${{ secrets.STRATZ_TOKEN }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        SSH_SERVER_USER: ${{ secrets.SSH_SERVER_USER }}
-        SSH_SERVER_IP: ${{ secrets.SSH_SERVER_IP }}
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKERHUB_IMAGE_REPOSITORY: ${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      run: |
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "echo $DOCKERHUB_TOKEN | docker login --username $DOCKERHUB_USERNAME --password-stdin"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker pull zanmato1106/feigbot-img:latest"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker stop feigbot || true"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker rm feigbot || true"
-        ssh $SSH_SERVER_USER@$SSH_SERVER_IP "docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=$DISCORD_TOKEN \ -e STRATZ_TOKEN=$STRATZ_TOKEN \ -e OPENAI_API_KEY=$OPENAI_API_KEY zanmato1106/feigbot-img:latest"
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SSH_SERVER_IP }}
+        username: ${{ secrets.SSH_SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}:latest
+          docker stop feigbot || true
+          docker rm feigbot || true
+          docker run -d -p 8000:8000 --name feigbot \
+            -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} \
+            -e STRATZ_TOKEN=${{ secrets.STRATZ_TOKEN }} \
+            -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}:latest
