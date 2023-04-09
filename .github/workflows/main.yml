@@ -60,4 +60,4 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}:latest
           docker stop feigbot || true
           docker rm feigbot || true
-          docker run -d -p 8000:8000 --name feigbot -e DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }} -e STRATZ_TOKEN=${{ secrets.STRATZ_TOKEN }} -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} zanmato1106/feigbot-images:latest
+          docker run -d -p 8000:8000 -e DISCORD_TOKEN='${{ secrets.DISCORD_TOKEN }}' -e STRATZ_TOKEN='${{ secrets.STRATZ_TOKEN }}' -e OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}' --name feigbot zanmato1106/feigbot-images:latest
