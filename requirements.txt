@@ -5,7 +5,7 @@ attrs==22.2.0
 certifi==2022.12.7
 charset-normalizer==3.1.0
 discord==2.2.2
-discord.py==2.2.2
+discord.py[voice]==2.2.2
 frozenlist==1.3.3
 idna==3.4
 multidict==6.0.4
@@ -14,3 +14,6 @@ requests==2.28.2
 tinydb==4.7.1
 urllib3==1.26.15
 yarl==1.8.2
+uberduck~=0.0.3
+langchain~=0.0.135
+openai~=0.27.4

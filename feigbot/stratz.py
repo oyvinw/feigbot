@@ -1,3 +1,5 @@
+import logging
+
 import requests
 import os
 from dotenv import load_dotenv
@@ -7,7 +9,7 @@ load_dotenv()
 STRATZ_TOKEN = os.getenv("STRATZ_TOKEN")
 headers = {"Authorization": f"Bearer {STRATZ_TOKEN}"}
 stratz_url = "https://api.stratz.com/graphql"
-item_db = TinyDB('items.json')
+item_db = TinyDB(os.path.join(os.path.dirname(__file__), '../data/items.json'))
 
 def update_items():
     item_query = """
@@ -28,9 +30,10 @@ def update_items():
     for item in r.get("data").get("constants").get("items"):
         item_id = item.get("id")
         item_name = item.get("language").get("displayName")
-        item_db.insert({'item_id' : item_id, 'item_name' : item_name})
+        item_db.insert({'item_id': item_id, 'item_name': item_name})
 
-    print("Items updated")
+    logging.info("Items updated")
+
 
 def get_previous_match_id(steam_id):
     id_query = """
@@ -46,6 +49,7 @@ def get_previous_match_id(steam_id):
 
     resp_dict = r.json()
     return resp_dict.get("data").get("player").get("matches")[0].get("id")
+
 
 def get_match(match_id):
     match_query = """
@@ -92,8 +96,8 @@ def get_match(match_id):
         match_id
     )
 
-    match = requests.post(stratz_url, json={"query": match_query}, headers=headers).json()  
-    
+    match = requests.post(stratz_url, json={"query": match_query}, headers=headers).json()
+
     for player in match.get("data").get("match").get("players"):
         replace_id_with_item(player, "item0Id")
         replace_id_with_item(player, "item1Id")
@@ -108,6 +112,7 @@ def get_match(match_id):
         return []
     else:
         return match
+
 
 def replace_id_with_item(player, itemId):
     item = player.get(itemId)

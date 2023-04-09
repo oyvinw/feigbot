@@ -9,10 +9,10 @@ if __name__ == "__main__":
     try:
         loop.run_until_complete(
             asyncio.gather(
-                feigbot.start()
+                feigbot.client.start()
             )
         )
     except KeyboardInterrupt:
-        loop.run_until_complete(feigbot.close())
+        loop.run_until_complete(feigbot.client.close())
     finally:
         loop.close()

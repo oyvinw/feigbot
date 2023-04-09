@@ -1,8 +1,9 @@
-db.json
-items.json
+data/db.json
+data/items.json
 .un
 .un~
 *~
+.idea
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
