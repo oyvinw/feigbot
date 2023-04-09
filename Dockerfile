@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python", "feigbot.py"]
+CMD ["python", "-m" "feigbot"]
