@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import io
 import logging
 import os
 import subprocess
@@ -15,7 +16,7 @@ from uberduck import UberDuck
 
 from feigbot import stratz, openaiclient
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TEST_TOKEN")
@@ -69,28 +70,24 @@ async def get_previous_match(ctx):
 
 
 @bot.command(name="perf", help="Use this command to see how you did last game")
-async def perf(ctx, lang="eng"):
+async def perf(ctx, lang="eng", vcargs="", voice="2pac"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
         if player.get("steamAccountId") != md.steam_id:
             continue
 
-        imp = player.get("imp")
         hero = player.get('hero').get('displayName')
-
-        if imp <= 0:
-            response = f"You did bad - here's a tip for your next game with {hero}:"
-
-        else:
-            response = f"You did well - here's a tip for your next game with {hero}:"
-
         dota_hero_tips = await openaiclient.prompt_gpt_herotip(hero)
-        await ctx.reply(response + dota_hero_tips)
+        if vcargs:
+            await vc(ctx, voice, dota_hero_tips)
+        else:
+            await ctx.reply(dota_hero_tips)
+        await ctx.send(dota_hero_tips)
 
 
-@bot.command(name="tips", help="Use this command to apologize for your throws last match")
-async def tips(ctx, lang="eng"):
+@bot.command(name="tips", help="get good tips")
+async def tips(ctx, lang="eng", vcargs="", voice="linustt"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -98,13 +95,17 @@ async def tips(ctx, lang="eng"):
             continue
 
         hero = player.get("hero").get("displayName")
-        tips = await openaiclient.prompt_gpt_tips(md.match, hero, lang)
+        tips_text = await openaiclient.prompt_gpt_tips(md.match, hero, lang)
 
-        await ctx.send(tips)
+        if vcargs:
+            await vc(ctx, voice, tips_text)
+        else:
+            await ctx.reply(tips_text)
+        await ctx.send(tips_text)
 
 
 @bot.command(name="sry", help="Use this command to apologize for your throws last match")
-async def apologize(ctx, lang="eng"):
+async def apologize(ctx, lang="eng", vcargs="", voice="dr-phil"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -114,11 +115,15 @@ async def apologize(ctx, lang="eng"):
         hero = player.get("hero").get("displayName")
         apology = await openaiclient.prompt_gpt_apology(md.match, ctx.message.author.name, hero, lang)
 
+        if vcargs:
+            await vc(ctx, voice, apology)
+        else:
+            await ctx.reply(apology)
         await ctx.send(apology)
 
 
 @bot.command(name="notsry", help="Use this command to justify yourself")
-async def not_sorry(ctx, lang="eng"):
+async def not_sorry(ctx, lang="eng", vcargs="", voice="relikk"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -128,21 +133,46 @@ async def not_sorry(ctx, lang="eng"):
         hero = player.get("hero").get("displayName")
         apology = await openaiclient.prompt_gpt_not_apology(md.match, ctx.message.author.name, hero, lang)
 
+        if vcargs:
+            await vc(ctx, voice, apology)
+        else:
+            await ctx.reply(apology)
         await ctx.send(apology)
 
 
 @bot.command(name="anal", help="Analyse the previous game")
-async def analyse(ctx, lang="eng"):
+async def analyse(ctx, lang="eng", vcargs="", voice="michael-scott"):
     md = await get_previous_match(ctx)
     analysis = await openaiclient.prompt_analyse(md.match, lang)
-    await ctx.reply(analysis)
+    if vcargs:
+        await vc(ctx, voice, analysis)
+    else:
+        await ctx.reply(analysis)
 
 
 @bot.command(name="analmatch", help="Analyse a specific game")
-async def analyse(ctx, match_id, lang="eng"):
+async def analyse(ctx, match_id, lang="eng", vcargs="", voice="michael-scott"):
     md = await get_match(ctx, match_id)
     analysis = await openaiclient.prompt_analyse(md.match, lang)
-    await ctx.reply(analysis)
+    if vcargs:
+        await vc(ctx, voice, analysis)
+    else:
+        await ctx.reply(analysis)
+
+
+@bot.command(name="rap", help="Make a cool rap about the last game")
+async def rap(ctx, lang="eng", vcargs="", voice="relikk"):
+    md = await get_previous_match(ctx)
+    for player in md.match.get("data").get("match").get("players"):
+        if player.get("steamAccountId") != md.steam_id:
+            continue
+
+        hero = player.get('hero').get('displayName')
+        result = await openaiclient.prompt_rap(md.match, hero, lang)
+        if vcargs:
+            await vc(ctx, voice, result)
+        else:
+            await ctx.reply(result)
 
 
 @bot.command(name="blame", help="Find out who is to blame for your most recent game")
@@ -215,30 +245,13 @@ async def get_or_create_voice_client(ctx):
 
 @bot.command()
 async def voices(ctx):
+    logging.debug("!voices")
     file = discord.File(
-        StringIO(
-            '\n'.join(
-                uberduck_client.get_voices(return_only_names=True)
-            )
-        ),
+        io.BytesIO(uberduck_voices),
         filename='voices.txt'
     )
+    logging.debug(file)
     await ctx.reply(file=file)
-
-
-@bot.command(name="vcsry")
-async def vcsry(ctx, voice="zwf", lang="eng"):
-    md = await get_previous_match(ctx)
-
-    for player in md.match.get("data").get("match").get("players"):
-        if player.get("steamAccountId") != md.steam_id:
-            continue
-
-        hero = player.get("hero").get("displayName")
-        apology = await openaiclient.prompt_gpt_apology(md.match, ctx.message.author.name, hero, lang)
-        logging.info("Apology generated from OpenAI")
-
-        await vc(ctx, voice, apology)
 
 
 async def vc(ctx, voice, speech):

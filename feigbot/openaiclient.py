@@ -59,6 +59,12 @@ async def prompt_gpt_tips(match, hero, lang):
         f"{default_prompt(match)} write a two paragraph witty comment about how {hero} could improve. Include some general tips. You may include some emojis from discord. {lang_preset(lang)}")
 
 
+async def prompt_rap(match, hero, lang):
+    llm = OpenAI(model_name=fast_model)
+    return llm(
+        f"{default_prompt(match)} rap a gangster rap about the match, focus on how dope and skilled {hero} was. {lang_preset(lang)}")
+
+
 def default_prompt(match):
     return f"Here is data collected about a Dota 2 game from the Stratz API: \n\n {match} and here is some information on how to interpret the data: \n\n{legend.read()} \n\nBased on this data and the interpretation,"
 
