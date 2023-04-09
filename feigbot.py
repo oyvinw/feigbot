@@ -2,6 +2,8 @@ import os
 import discord
 import stratz
 import openaiclient
+import logging
+
 from dotenv import load_dotenv
 from discord.ext import commands
 from tinydb import TinyDB, Query
@@ -9,6 +11,7 @@ from tinydb import TinyDB, Query
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+loghandler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 db = TinyDB('db.json')
 stratz.update_items()
 
@@ -129,4 +132,4 @@ async def reg(ctx, steamAcc: int):
 
     await ctx.reply('You have been successfully registered')
 
-bot.run(TOKEN)
+bot.run(TOKEN, log_handler=loghandler, log_level=logging.DEBUG)
