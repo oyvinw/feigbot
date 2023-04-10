@@ -17,7 +17,7 @@ from uberduck import UberDuck
 from feigbot import stratz, openaiclient
 
 logging.basicConfig(level=logging.INFO)
-
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 KEY = os.getenv("UBERDUCK_API_KEY")
@@ -276,4 +276,4 @@ async def vc(ctx, voice, speech):
         os.remove(opus_f.name)
 
 
-bot.run(TOKEN)
+bot.run(TOKEN, log_handler=handler, log_level=logging.DEBUG)
