@@ -10,6 +10,12 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y opus-tools
 
+RUN apt-get update && \
+    apt-get install -y libffi-dev
+    
+RUN apt-get update && \
+    apt-get install -y python-dev
+
 WORKDIR /app
 
 COPY requirements.txt .
