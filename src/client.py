@@ -5,7 +5,6 @@ import logging
 import os
 import subprocess
 import tempfile
-from io import StringIO
 
 import discord
 import uberduck
@@ -14,9 +13,7 @@ from dotenv import load_dotenv
 from tinydb import TinyDB, Query
 from uberduck import UberDuck
 
-from feigbot import stratz, openaiclient
-
-logging.basicConfig(level=logging.INFO)
+from src import stratz, openaiclient
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")

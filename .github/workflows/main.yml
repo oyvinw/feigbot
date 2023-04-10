@@ -30,7 +30,7 @@ jobs:
       with:
         context: .
         push: true
-        tags: zanmato1106/feigbot-images:latest
+        tags: zanmato1106/src-images:latest
         
         
   deploy:
