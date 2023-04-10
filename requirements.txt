@@ -1,4 +1,4 @@
-discord[voice]~=2.2.2
+discord.py[voice]~=2.2.2
 uberduck~=0.0.3
 python-dotenv~=1.0.0
 tinydb~=4.7.1

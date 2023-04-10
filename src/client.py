@@ -60,6 +60,7 @@ def get_steam_id(discord_user):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.reply("Jeg har ikke tillit til deg")
+    raise error
 
 
 async def get_match(ctx, match_id):
