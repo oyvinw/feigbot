@@ -14,9 +14,22 @@ from dotenv import load_dotenv
 from tinydb import TinyDB, Query
 from uberduck import UberDuck
 
-from feigbot import stratz, openaiclient
+from src import stratz, openaiclient
 
-logging.basicConfig(level=logging.INFO)
+logpath = os.path.join(os.path.dirname(__file__), '../log')
+os.makedirs(logpath, exist_ok=True)
+
+date = '{date:%d-%m-%Y_%H-%M-%S}'.format(date=datetime.datetime.now())
+filepath = f'{logpath}/feigbot{date}.log'
+print(filepath)
+logging.basicConfig(filename=filepath,
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG,
+                    encoding='utf-8')
+
+logging.info("logging initialized")
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -47,6 +60,7 @@ def get_steam_id(discord_user):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.reply("Jeg har ikke tillit til deg")
+    raise error
 
 
 async def get_match(ctx, match_id):
@@ -179,10 +193,11 @@ async def rap(ctx, lang="eng", vcargs="", voice="relikk"):
 async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
     md = await get_previous_match(ctx)
     blame_text = await openaiclient.prompt_blame(md.match, lang, vc)
-    print(blame_text)
     if vcargs:
+        logging.info("Attempting voice chat")
         await vc(ctx, voice, blame_text)
     else:
+        logging.info("Attempting to send a text reply")
         await ctx.reply(blame_text)
 
 

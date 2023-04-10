@@ -6,6 +6,12 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y opus-tools
 
+RUN apt-get update && \
+    apt-get install -y libffi-dev
+    
+RUN apt-get update && \
+    apt-get install -y python-dev
+
 WORKDIR /app
 
 COPY requirements.txt .
@@ -16,4 +22,10 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python", "-m", "feigbot"]
+ENV LOG_DIR /app/log
+
+RUN mkdir -p ${LOG_DIR}
+
+VOLUME ${LOG_DIR}
+
+CMD ["python", "."]

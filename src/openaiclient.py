@@ -1,5 +1,6 @@
 import logging
 import os
+
 from dotenv import load_dotenv
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
@@ -46,6 +47,7 @@ async def prompt_analyse(match, lang):
 
 async def prompt_blame(match, lang, emoji=False):
     llm = OpenAI(model_name=fast_model)
+    logging.info("Got model from OpenAI")
     emoji_info = ""
     if emoji:
         emoji_info = "You may include some emojis from discord."

@@ -11,6 +11,7 @@ headers = {"Authorization": f"Bearer {STRATZ_TOKEN}"}
 stratz_url = "https://api.stratz.com/graphql"
 item_db = TinyDB(os.path.join(os.path.dirname(__file__), '../data/items.json'))
 
+
 def update_items():
     item_query = """
     {
@@ -48,6 +49,7 @@ def get_previous_match_id(steam_id):
     r = requests.post(stratz_url, json={"query": id_query}, headers=headers)
 
     resp_dict = r.json()
+    logging.info("Got previous match ID from Stratz")
     return resp_dict.get("data").get("player").get("matches")[0].get("id")
 
 
@@ -107,6 +109,7 @@ def get_match(match_id):
         replace_id_with_item(player, "item5Id")
 
     unparsed = match.get('data').get('match').get('parsedDateTime') == 'null'
+    logging.info(f"Got match {match_id} from Stratz")
 
     if unparsed:
         return []

@@ -1,18 +1,21 @@
 import asyncio
+import datetime
 import logging
-import feigbot
+import os
 
-logging.basicConfig(level=logging.DEBUG)
+import src
+
+print("hello from main")
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(
             asyncio.gather(
-                feigbot.client.start()
+                src.client.start()
             )
         )
     except KeyboardInterrupt:
-        loop.run_until_complete(feigbot.client.close())
+        loop.run_until_complete(src.client.close())
     finally:
         loop.close()
