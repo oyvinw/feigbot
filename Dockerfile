@@ -22,7 +22,7 @@ COPY . .
 
 EXPOSE 8000
 
-ENV LOG_DIR /log
+ENV LOG_DIR /app/log
 
 RUN mkdir -p ${LOG_DIR}
 
