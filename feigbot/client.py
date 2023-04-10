@@ -19,7 +19,7 @@ from feigbot import stratz, openaiclient
 logging.basicConfig(level=logging.INFO)
 
 load_dotenv()
-TOKEN = os.getenv("DISCORD_TEST_TOKEN")
+TOKEN = os.getenv("DISCORD_TOKEN")
 KEY = os.getenv("UBERDUCK_API_KEY")
 SECRET = os.getenv("UBERDUCK_API_SECRET")
 
