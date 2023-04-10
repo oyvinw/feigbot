@@ -14,9 +14,22 @@ from dotenv import load_dotenv
 from tinydb import TinyDB, Query
 from uberduck import UberDuck
 
-from feigbot import stratz, openaiclient
+from src import stratz, openaiclient
 
-logging.basicConfig(level=logging.INFO)
+logpath = os.path.join(os.path.dirname(__file__), '../log')
+os.makedirs(logpath, exist_ok=True)
+
+date = '{date:%d-%m-%Y_%H-%M-%S}'.format(date=datetime.datetime.now())
+filepath = f'{logpath}/feigbot{date}.log'
+print(filepath)
+logging.basicConfig(filename=filepath,
+                    filemode='a',
+                    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+                    datefmt='%H:%M:%S',
+                    level=logging.DEBUG,
+                    encoding='utf-8')
+
+logging.info("logging initialized")
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
