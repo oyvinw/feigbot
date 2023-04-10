@@ -54,7 +54,8 @@ There are also some special commands that work particularly well with voice comm
 ### !rap - Feigbot will do a sick rap about how you played like a god last game
 ### !vc-join - feigbot will join your voice channel
 ### !vc-kick - kick feigbot from whatever voice channel he's in :(
+### !voices - get a list of all of feigbots possible voices
 
-## Requirements
+## Installation Requirements
 [FFmpeg](https://ffmpeg.org/) \
 [Opus Interactive Audio Codec](https://opus-codec.org/)
