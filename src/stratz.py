@@ -2,16 +2,21 @@ import logging
 
 import requests
 import os
+import pymongo
 from dotenv import load_dotenv
-from tinydb import TinyDB, Query
 
 load_dotenv()
 STRATZ_TOKEN = os.getenv("STRATZ_TOKEN")
+MONGODB_PW = os.getenv("MONGODB_PW")
+
 headers = {"Authorization": f"Bearer {STRATZ_TOKEN}"}
 stratz_url = "https://api.stratz.com/graphql"
-item_db = TinyDB(os.path.join(os.path.dirname(__file__), '../data/items.json'))
+
+client = pymongo.MongoClient(f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
+itemscol = client.db.items
 
 
+# Update only when needed. i.e. when a patch drops
 def update_items():
     item_query = """
     {
@@ -25,14 +30,16 @@ def update_items():
         }
     }
     """
-    item_db.truncate()
+    itemscol.drop()
 
     r = requests.post(stratz_url, json={"query": item_query}, headers=headers).json()
+    item_list = []
     for item in r.get("data").get("constants").get("items"):
         item_id = item.get("id")
         item_name = item.get("language").get("displayName")
-        item_db.insert({'item_id': item_id, 'item_name': item_name})
+        item_list.append({'item_id': item_id, 'item_name': item_name})
 
+    itemscol.insert_many(item_list)
     logging.info("Items updated")
 
 
@@ -44,7 +51,7 @@ def get_previous_match_id(steam_id):
                 id
                 }
             }
-    }""" % (steam_id)
+    }""" % steam_id
 
     r = requests.post(stratz_url, json={"query": id_query}, headers=headers)
 
@@ -117,10 +124,18 @@ def get_match(match_id):
         return match
 
 
-def replace_id_with_item(player, itemId):
-    item = player.get(itemId)
+def replace_id_with_item(player, item_id):
+    item = player.get(item_id)
     if type(item) != int:
         return
 
-    Q = Query()
-    player[itemId] = item_db.search(Q.item_id == item)[0]['item_name']
+    item_cursor = itemscol.find({'item_id': item})
+    item_name = ""
+    for db_item in item_cursor:
+        item_name = db_item.get('item_name')
+
+    if not item_name:
+        update_items()
+        return replace_id_with_item(player, item_id)
+
+    player[item_id] = item_name
