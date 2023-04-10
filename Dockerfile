@@ -22,4 +22,10 @@ COPY . .
 
 EXPOSE 8000
 
+ENV LOG_DIR /app/log
+
+RUN mkdir -p ${LOG_DIR}
+
+VOLUME ${LOG_DIR}
+
 CMD ["python", "."]
