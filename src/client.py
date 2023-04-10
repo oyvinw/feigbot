@@ -5,13 +5,12 @@ import logging
 import os
 import subprocess
 import tempfile
-from io import StringIO
 
 import discord
+import pymongo
 import uberduck
 from discord.ext import commands
 from dotenv import load_dotenv
-from tinydb import TinyDB, Query
 from uberduck import UberDuck
 
 from src import stratz, openaiclient
@@ -32,16 +31,17 @@ logging.basicConfig(filename=filepath,
 logging.info("logging initialized")
 
 load_dotenv()
-TOKEN = os.getenv("DISCORD_TOKEN")
-KEY = os.getenv("UBERDUCK_API_KEY")
-SECRET = os.getenv("UBERDUCK_API_SECRET")
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+UBERDUCK_KEY = os.getenv("UBERDUCK_API_KEY")
+UBERDUCK_SECRET = os.getenv("UBERDUCK_API_SECRET")
+MONGODB_PW = os.getenv("MONGODB_PW")
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
-db = TinyDB(os.path.join(os.path.dirname(__file__), '../data/db.json'))
-stratz.update_items()
+client = pymongo.MongoClient(f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
+userscol = client.db.users
 
 guild_to_voice_client = dict()
-uberduck_client: UberDuck = uberduck.UberDuck(KEY, SECRET)
+uberduck_client: UberDuck = uberduck.UberDuck(UBERDUCK_KEY, UBERDUCK_SECRET)
 uberduck_voices = uberduck.get_voices(return_only_names=True)
 
 
@@ -52,14 +52,20 @@ class MatchData:
 
 
 def get_steam_id(discord_user):
-    Q = Query()
-    return db.search(Q.discord_user == f'{discord_user}')[0]['steam_user_id_32']
+    query = {'discord_user': f'{discord_user}'}
+    user = userscol.find(query)
+    for cursor in user:
+        return cursor.get('steam_user_id_32')
+
+    raise commands.errors.UserNotFound(discord_user)
 
 
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
         await ctx.reply("Jeg har ikke tillit til deg")
+    if isinstance(error, commands.errors.UserNotFound):
+        await ctx.reply("You need to register using '!reg {your-steam-id-32-here}'")
     raise error
 
 
@@ -67,7 +73,7 @@ async def get_match(ctx, match_id):
     steam_id = get_steam_id(ctx.message.author)
     match = stratz.get_match(match_id)
 
-    if match == []:
+    if not match:
         await ctx.reply("Replay is not parsed yet, try again in a minute")
         return
 
@@ -203,9 +209,17 @@ async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
 
 @bot.command(name='reg')
 async def reg(ctx, steam_acc: int):
-    Q = Query()
-    db.remove(Q.discord_user == f'{ctx.message.author}')
-    db.insert({'discord_user': f'{ctx.message.author}', 'steam_user_id_32': steam_acc})
+    logging.info(f"looking up user {ctx.message.author}")
+    query = {'discord_user': f'{ctx.message.author}'}
+    old_user = userscol.find(query)
+    for _ in old_user:
+        userscol.update_one({'discord_user': f'{ctx.message.author}'}, {'$set': {'steam_user_id_32': steam_acc}})
+        await ctx.reply("Your steam id has been updated")
+        return
+
+    logging.info(f"attempting to insert {ctx.message.author}, with steam_id: {steam_acc} into {userscol}")
+    new_user = {'discord_user': f'{ctx.message.author}', 'steam_user_id_32': steam_acc}
+    userscol.insert_one(new_user)
 
     await ctx.reply('You have been successfully registered')
 
@@ -291,4 +305,4 @@ async def vc(ctx, voice, speech):
         os.remove(opus_f.name)
 
 
-bot.run(TOKEN)
+bot.run(DISCORD_TOKEN)
