@@ -60,4 +60,4 @@ jobs:
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ secrets.DOCKERHUB_IMAGE_REPOSITORY }}:latest
           docker stop feigbot || true
           docker rm feigbot || true
-          sudo docker run -d -p 8000:8000 -e DISCORD_TOKEN='${{ secrets.DISCORD_TOKEN }}' -e UBERDUCK_API_KEY='${{ secrets.UBERDUCK_API_KEY }}' -e UBERDUCK_API_SECRET='${{ secrets.UBERDUCK_API_SECRET }}' -e STRATZ_TOKEN='${{ secrets.STRATZ_TOKEN }}' -e OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}' --name feigbot zanmato1106/feigbot-images:latest
+          docker run -d -p 8000:8000 -e DISCORD_TOKEN='${{ secrets.DISCORD_TOKEN }}' -e UBERDUCK_API_KEY='${{ secrets.UBERDUCK_API_KEY }}' -e UBERDUCK_API_SECRET='${{ secrets.UBERDUCK_API_SECRET }}' -e STRATZ_TOKEN='${{ secrets.STRATZ_TOKEN }}' -e OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}' --name feigbot zanmato1106/feigbot-images:latest
