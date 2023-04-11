@@ -37,7 +37,8 @@ UBERDUCK_SECRET = os.getenv("UBERDUCK_API_SECRET")
 MONGODB_PW = os.getenv("MONGODB_PW")
 
 bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
-client = pymongo.MongoClient(f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
+client = pymongo.MongoClient(
+    f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
 userscol = client.db.users
 
 guild_to_voice_client = dict()
@@ -209,7 +210,6 @@ async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
 
 @bot.command(name='reg')
 async def reg(ctx, steam_acc: int):
-    logging.info(f"looking up user {ctx.message.author}")
     query = {'discord_user': f'{ctx.message.author}'}
     old_user = userscol.find(query)
     for _ in old_user:
@@ -217,11 +217,25 @@ async def reg(ctx, steam_acc: int):
         await ctx.reply("Your steam id has been updated")
         return
 
-    logging.info(f"attempting to insert {ctx.message.author}, with steam_id: {steam_acc} into {userscol}")
     new_user = {'discord_user': f'{ctx.message.author}', 'steam_user_id_32': steam_acc}
-    userscol.insert_one(new_user)
+    user_id = userscol.insert_one(new_user)
+    logging.info(
+        f"Successfully registered {ctx.message.author}, with steam_id: {steam_acc} into {userscol} with "
+        f"user_id: {user_id}")
 
     await ctx.reply('You have been successfully registered')
+
+
+@bot.command(name='unreg')
+async def unreg(ctx):
+    query = {'discord_user': f'{ctx.message.author}'}
+    old_user = userscol.find(query)
+    for _ in old_user:
+        userscol.delete_one({'discord_user': f'{ctx.message.author}'})
+        await ctx.reply("Your steam id has been removed and forgotten")
+        return
+
+    await ctx.reply('No user to unregister')
 
 
 @bot.command(name="vc-join")
@@ -276,7 +290,7 @@ async def get_or_create_voice_client(ctx):
 async def voices(ctx):
     logging.debug("!voices")
     file = discord.File(
-        io.BytesIO(uberduck_voices),
+        io.StringIO('\n'.join(uberduck_voices)),
         filename='voices.txt'
     )
     logging.debug(file)
@@ -286,7 +300,7 @@ async def voices(ctx):
 async def vc(ctx, voice, speech):
     voice_client, _ = await get_or_create_voice_client(ctx)
     guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.datetime)
-    audio_data = uberduck_client.speak(speech, voice)
+    audio_data = uberduck_client.speak(speech, voice, check_every=0.2)
     logging.info("Audio data generated from Uberduck")
 
     with tempfile.NamedTemporaryFile(
