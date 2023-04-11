@@ -23,7 +23,7 @@ async def prompt_gpt_apology(match, sinner, heroname, lang):
 async def prompt_gpt_not_apology(match, sinner, heroname, lang):
     llm = OpenAI(model_name=fast_model)
     return llm(
-        f"{default_prompt(match)} write an unapologetic short speech about a bad dota 2 match. Justify why the loss isn't your fault. Use dry wit and sarcasm. Write as a player named {sinner}, playing as {heroname}. {lang_preset(lang)}")
+        f"{default_prompt(match)} write an unapologetic short speech about a bad dota 2 match. Justify why the loss isn't the fault of the player {sinner} who played as {heroname}, but rather because of the rest of the team. Use dry wit and sarcasm. {lang_preset(lang)}")
 
 
 async def prompt_gpt_herotip(heroname):
@@ -64,7 +64,7 @@ async def prompt_gpt_tips(match, hero, lang):
 async def prompt_rap(match, hero, lang):
     llm = OpenAI(model_name=fast_model)
     return llm(
-        f"{default_prompt(match)} rap a gangster rap about the match, focus on how dope and skilled {hero} was. {lang_preset(lang)}")
+        f"{default_prompt(match)} rap 8 bars of gangster rap about the match, focus on how dope and skilled {hero} was. {lang_preset(lang)}")
 
 
 def default_prompt(match):
