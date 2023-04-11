@@ -1,13 +1,10 @@
 import asyncio
-import datetime
-import logging
-import os
 
 import src
 
-print("hello from main")
 
 if __name__ == "__main__":
+    print("hello from main")
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(

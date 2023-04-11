@@ -104,7 +104,6 @@ async def perf(ctx, lang="eng", vcargs="", voice="2pac"):
             await vc(ctx, voice, dota_hero_tips)
         else:
             await ctx.reply(dota_hero_tips)
-        await ctx.send(dota_hero_tips)
 
 
 @bot.command(name="tips", help="get good tips")
@@ -122,7 +121,6 @@ async def tips(ctx, lang="eng", vcargs="", voice="linustt"):
             await vc(ctx, voice, tips_text)
         else:
             await ctx.reply(tips_text)
-        await ctx.send(tips_text)
 
 
 @bot.command(name="sry", help="Use this command to apologize for your throws last match")
@@ -140,11 +138,10 @@ async def apologize(ctx, lang="eng", vcargs="", voice="dr-phil"):
             await vc(ctx, voice, apology)
         else:
             await ctx.reply(apology)
-        await ctx.send(apology)
 
 
 @bot.command(name="notsry", help="Use this command to justify yourself")
-async def not_sorry(ctx, lang="eng", vcargs="", voice="relikk"):
+async def not_sorry(ctx, lang="eng", vcargs="", voice="glados-p2"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -158,7 +155,6 @@ async def not_sorry(ctx, lang="eng", vcargs="", voice="relikk"):
             await vc(ctx, voice, apology)
         else:
             await ctx.reply(apology)
-        await ctx.send(apology)
 
 
 @bot.command(name="anal", help="Analyse the previous game")
@@ -298,10 +294,12 @@ async def voices(ctx):
 
 
 async def vc(ctx, voice, speech):
-    voice_client, _ = await get_or_create_voice_client(ctx)
-    guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.datetime)
-    audio_data = uberduck_client.speak(speech, voice, check_every=0.2)
-    logging.info("Audio data generated from Uberduck")
+    async with ctx.typing():
+        audio_data = await uberduck_client.speak_async(speech, voice, check_every=1)
+        voice_client, _ = await get_or_create_voice_client(ctx)
+        guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.datetime)
+        logging.info("Audio data generated from Uberduck")
+        await asyncio.sleep(0.3)
 
     with tempfile.NamedTemporaryFile(
             suffix=".wav", delete=False
@@ -313,7 +311,7 @@ async def vc(ctx, voice, speech):
         source = discord.FFmpegOpusAudio(opus_f.name)
         voice_client.play(source, after=None)
         while voice_client.is_playing():
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
         os.remove(wav_f.name)
         os.remove(opus_f.name)
