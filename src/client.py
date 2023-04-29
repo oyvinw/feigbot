@@ -64,7 +64,7 @@ def get_steam_id(discord_user):
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.errors.CheckFailure):
-        await ctx.reply("Jeg har ikke tillit til deg")
+        await ctx.reply("You dont have permission to do that")
     if isinstance(error, commands.errors.UserNotFound):
         await ctx.reply("You need to register using '!reg {your-steam-id-32-here}'")
     raise error
@@ -75,7 +75,7 @@ async def get_match(ctx, match_id):
     match = stratz.get_match(match_id)
 
     if not match:
-        await ctx.reply("Replay is not parsed yet, try again in a minute")
+        await ctx.reply("No game found!")
         return
 
     return MatchData(match, steam_id)

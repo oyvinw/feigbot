@@ -57,6 +57,8 @@ def get_previous_match_id(steam_id):
 
     resp_dict = r.json()
     logging.info("Got previous match ID from Stratz")
+    if resp_dict.get("data").get("player").get("steamAccount") is "null":
+        raise Exception(f"Steam account with steam id {steam_id} not found")
     return resp_dict.get("data").get("player").get("matches")[0].get("id")
 
 
