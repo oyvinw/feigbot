@@ -14,6 +14,17 @@ good_model = "text-davinci-003"
 legend = open(os.path.join(os.path.dirname(__file__), '../data/legend.txt'))
 
 
+async def list_matches(matches):
+    llm = OpenAI(model_name=good_model)
+    return llm(
+        f"The following is a json-file describing live Dota 2 matches: \n\n {matches} "
+        f"\n\n Present the reader with a nicely formatted list of the these matches, including the Match Id, "
+        f"the League name and the names of the teams. Inform the reader that they can get live updates of the games "
+        f"by writing the '!live' command in the chat, followed by the Match Id of the game they want to get updates "
+        f"from"
+    )
+
+
 async def prompt_gpt_apology(match, sinner, heroname, lang):
     llm = OpenAI(model_name=good_model)
     return llm(

@@ -12,7 +12,8 @@ MONGODB_PW = os.getenv("MONGODB_PW")
 headers = {"Authorization": f"Bearer {STRATZ_TOKEN}"}
 stratz_url = "https://api.stratz.com/graphql"
 
-client = pymongo.MongoClient(f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
+client = pymongo.MongoClient(
+    f"mongodb+srv://feigbot:{MONGODB_PW}@feigbot.ssqtcoy.mongodb.net/?retryWrites=true&w=majority")
 itemscol = client.db.items
 
 
@@ -57,7 +58,7 @@ def get_previous_match_id(steam_id):
 
     resp_dict = r.json()
     logging.info("Got previous match ID from Stratz")
-    if resp_dict.get("data").get("player").get("steamAccount") is "null":
+    if resp_dict.get("data").get("player").get("steamAccount") == "null":
         raise Exception(f"Steam account with steam id {steam_id} not found")
     return resp_dict.get("data").get("player").get("matches")[0].get("id")
 
@@ -109,14 +110,7 @@ def get_match(match_id):
 
     match = requests.post(stratz_url, json={"query": match_query}, headers=headers).json()
 
-    for player in match.get("data").get("match").get("players"):
-        replace_id_with_item(player, "item0Id")
-        replace_id_with_item(player, "item1Id")
-        replace_id_with_item(player, "item2Id")
-        replace_id_with_item(player, "item3Id")
-        replace_id_with_item(player, "item4Id")
-        replace_id_with_item(player, "item5Id")
-
+    get_items_for_players(match.get("data").get("match").get("players"))
     unparsed = match.get('data').get('match').get('parsedDateTime') == 'null'
     logging.info(f"Got match {match_id} from Stratz")
 
@@ -124,6 +118,242 @@ def get_match(match_id):
         return []
     else:
         return match
+
+
+def get_live_match_initial(match_id):
+    live_query = """
+    {
+    live {
+        match(id: %s) {
+            gameMinute
+            gameState
+            isUpdating
+            league {
+                displayName
+                tier
+                prizePool
+                startDateTime
+                endDateTime
+                lastMatchDate
+            }
+            radiantTeam {
+                name
+            }
+            direTeam {
+                name
+            }
+            direScore
+            radiantScore
+            winRateValues
+            insight {
+                teamOneVsWinCount
+                teamOneLeagueWinCount
+                teamOneLeagueMatchCount
+                teamTwoVsWinCount
+                teamTwoLeagueWinCount
+                teamTwoLeagueMatchCount
+            }
+            players {
+                name
+                isRadiant
+                numKills
+                numDeaths
+                numLastHits
+                numDenies
+                networth
+                goldPerMinute
+                level
+                itemId0
+                itemId1
+                itemId2
+                itemId3
+                itemId4
+                itemId5
+                steamAccount{
+                    proSteamAccount{
+                        name
+                    }
+                }
+                hero {
+                    displayName
+                }
+            }
+        }
+    }
+    }
+    """ % (
+        match_id
+    )
+
+    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
+        'match')
+    get_items_for_players(match.get("players"))
+    logging.info(f"Got live match {match_id} from Stratz")
+    return match
+
+
+def get_live_match_status(match_id):
+    live_query = """
+    {
+    live {
+        match(id: %s) {
+            gameState
+            isUpdating
+            }
+        }
+    }
+    """ % (
+        match_id
+    )
+    return requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get('match')
+
+
+def get_live_draft(match_id):
+    live_query = """
+{
+  live {
+    match(id: %s) {
+      playbackData{
+        pickBans {
+          order
+          isPick
+          heroId
+          bannedHeroId
+          isRadiant
+          baseWinRate
+          adjustedWinRate
+          position
+        }
+      }
+      insight {
+        teamOneVsWinCount
+        teamTwoVsWinCount
+        teamOneLeagueWinCount
+        teamOneLeagueMatchCount
+        teamTwoLeagueWinCount
+        teamTwoLeagueMatchCount
+        lastSeries {
+          teamOneWinCount
+          teamTwoWinCount
+        }
+      }
+    }
+  }
+}
+    """ % (
+        match_id
+    )
+    return requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
+        'match')
+
+
+def get_live_match(match_id):
+    live_query = """
+    {
+    live {
+        match(id: %s) {
+            gameMinute
+            radiantTeam {
+                name
+            }
+            direTeam {
+                name
+            }
+            direScore
+            radiantScore
+            winRateValues
+            players {
+                name
+                isRadiant
+                numKills
+                numDeaths
+                numLastHits
+                numDenies
+                networth
+                goldPerMinute
+                level
+                itemId0
+                itemId1
+                itemId2
+                itemId3
+                itemId4
+                itemId5
+                steamAccount{
+                    proSteamAccount{
+                        name
+                    }
+                }
+                hero {
+                    displayName
+                }
+            }
+        }
+    }
+    }
+    """ % (
+        match_id
+    )
+
+    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
+        'match')
+    get_items_for_players(match.get("players"))
+    logging.info(f"Got live match {match_id} from Stratz")
+    return match
+
+
+def get_live_games():
+    live_query = """
+{
+  live {
+    matches(request: {isCompleted: false, tiers: [MAJOR, DPC_LEAGUE, DPC_QUALIFIER, DPC_LEAGUE_FINALS, DPC_LEAGUE_QUALIFIER, MINOR, INTERNATIONAL, PROFESSIONAL]}) {
+      matchId
+      gameMode
+      isUpdating
+      radiantTeam {
+        name
+      }
+      direTeam {
+        name
+      }
+      league {
+        displayName
+        tier
+      }
+    }
+  }
+}
+    """
+
+    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get('matches')
+    logging.info(f"Got list of live matches from Stratz")
+    return match
+
+
+def get_team_info(team_ids: [int]):
+    team_query = """
+    {
+	    teams(teamIds: %s){
+            name
+            id
+            countryCode
+        }
+    }
+
+    """ % (
+        team_ids
+    )
+
+    return requests.post(stratz_url, json={"query": team_query}, headers=headers).json().get('data')
+
+
+def get_items_for_players(players):
+    for player in players:
+        replace_id_with_item(player, "item0Id")
+        replace_id_with_item(player, "item1Id")
+        replace_id_with_item(player, "item2Id")
+        replace_id_with_item(player, "item3Id")
+        replace_id_with_item(player, "item4Id")
+        replace_id_with_item(player, "item5Id")
 
 
 def replace_id_with_item(player, item_id):
@@ -141,3 +371,7 @@ def replace_id_with_item(player, item_id):
         return replace_id_with_item(player, item_id)
 
     player[item_id] = item_name
+
+
+def get_live_match_end(match_id):
+    return None

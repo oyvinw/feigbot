@@ -13,6 +13,8 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from uberduck import UberDuck
 
+from live import LiveMatch
+
 from src import stratz, openaiclient
 
 logpath = os.path.join(os.path.dirname(__file__), '../log')
@@ -42,6 +44,7 @@ client = pymongo.MongoClient(
 userscol = client.db.users
 
 guild_to_voice_client = dict()
+guild_to_live_game = dict()
 uberduck_client: UberDuck = uberduck.UberDuck(UBERDUCK_KEY, UBERDUCK_SECRET)
 uberduck_voices = uberduck.get_voices(return_only_names=True)
 
@@ -204,6 +207,32 @@ async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
         await ctx.reply(blame_text)
 
 
+@bot.command(name="listlive")
+async def listlive(ctx):
+    matches = stratz.get_live_games()
+    match_list = "\n\nHere is a list of currently live Dota 2 pro games: \n"
+    for match in matches:
+        match_list = f"{match_list}```\n"
+        match_list = f"{match_list}{match.get('radiantTeam').get('name')} VS {match.get('direTeam').get('name')}\n"
+        match_list = f"{match_list}Match Id: {match.get('matchId')}\n"
+        match_list = f"{match_list}Leauge: {match.get('league').get('displayName')}\n"
+        match_list = f"{match_list}Tier: {match.get('league').get('tier')}\n"
+        match_list = f"{match_list}```\n"
+
+    await ctx.reply(match_list)
+
+
+@bot.command(name='live')
+async def live(ctx, match_id: int):
+    guild_to_live_game[ctx.guild] = LiveMatch(ctx, match_id)
+    await guild_to_live_game[ctx.guild].start_live()
+
+
+@bot.command(name='stoplive')
+async def stop_live(ctx):
+    await guild_to_live_game[ctx.guild].stop_live()
+
+
 @bot.command(name='reg')
 async def reg(ctx, steam_acc: int):
     query = {'discord_user': f'{ctx.message.author}'}
@@ -313,8 +342,11 @@ async def vc(ctx, voice, speech):
         while voice_client.is_playing():
             await asyncio.sleep(0.2)
 
-        os.remove(wav_f.name)
-        os.remove(opus_f.name)
+        try:
+            os.remove(wav_f.name)
+            os.remove(opus_f.name)
+        except:
+            logging.warning("Could not remove temp-file")
 
 
 bot.run(DISCORD_TOKEN)
