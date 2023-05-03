@@ -13,9 +13,9 @@ from discord.ext import commands
 from dotenv import load_dotenv
 from uberduck import UberDuck
 
-from live import LiveMatch
-
-from src import stratz, openaiclient
+import src.live as live
+import src.openaiclient as openaiclient
+import src.stratz as stratz
 
 logpath = os.path.join(os.path.dirname(__file__), '../log')
 os.makedirs(logpath, exist_ok=True)
@@ -94,7 +94,7 @@ async def get_previous_match(ctx):
 
 
 @bot.command(name="perf", help="Use this command to see how you did last game")
-async def perf(ctx, lang="eng", vcargs="", voice="2pac"):
+async def perf_cmd(ctx, lang="eng", vcargs="", voice="2pac"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -110,7 +110,7 @@ async def perf(ctx, lang="eng", vcargs="", voice="2pac"):
 
 
 @bot.command(name="tips", help="get good tips")
-async def tips(ctx, lang="eng", vcargs="", voice="linustt"):
+async def tips_cmd(ctx, lang="eng", vcargs="", voice="linustt"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -127,7 +127,7 @@ async def tips(ctx, lang="eng", vcargs="", voice="linustt"):
 
 
 @bot.command(name="sry", help="Use this command to apologize for your throws last match")
-async def apologize(ctx, lang="eng", vcargs="", voice="dr-phil"):
+async def apologize_cmd(ctx, lang="eng", vcargs="", voice="dr-phil"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -144,7 +144,7 @@ async def apologize(ctx, lang="eng", vcargs="", voice="dr-phil"):
 
 
 @bot.command(name="notsry", help="Use this command to justify yourself")
-async def not_sorry(ctx, lang="eng", vcargs="", voice="glados-p2"):
+async def not_sorry_cmd(ctx, lang="eng", vcargs="", voice="glados-p2"):
     md = await get_previous_match(ctx)
 
     for player in md.match.get("data").get("match").get("players"):
@@ -161,7 +161,7 @@ async def not_sorry(ctx, lang="eng", vcargs="", voice="glados-p2"):
 
 
 @bot.command(name="anal", help="Analyse the previous game")
-async def analyse(ctx, lang="eng", vcargs="", voice="michael-scott"):
+async def analyse_cmd(ctx, lang="eng", vcargs="", voice="michael-scott"):
     md = await get_previous_match(ctx)
     analysis = await openaiclient.prompt_analyse(md.match, lang)
     if vcargs:
@@ -171,7 +171,7 @@ async def analyse(ctx, lang="eng", vcargs="", voice="michael-scott"):
 
 
 @bot.command(name="analmatch", help="Analyse a specific game")
-async def analyse(ctx, match_id, lang="eng", vcargs="", voice="michael-scott"):
+async def analyse_cmd(ctx, match_id, lang="eng", vcargs="", voice="michael-scott"):
     md = await get_match(ctx, match_id)
     analysis = await openaiclient.prompt_analyse(md.match, lang)
     if vcargs:
@@ -181,7 +181,7 @@ async def analyse(ctx, match_id, lang="eng", vcargs="", voice="michael-scott"):
 
 
 @bot.command(name="rap", help="Make a cool rap about the last game")
-async def rap(ctx, lang="eng", vcargs="", voice="relikk"):
+async def rap_cmd(ctx, lang="eng", vcargs="", voice="relikk"):
     md = await get_previous_match(ctx)
     for player in md.match.get("data").get("match").get("players"):
         if player.get("steamAccountId") != md.steam_id:
@@ -196,7 +196,7 @@ async def rap(ctx, lang="eng", vcargs="", voice="relikk"):
 
 
 @bot.command(name="blame", help="Find out who is to blame for your most recent game")
-async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
+async def blame_cmd(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
     md = await get_previous_match(ctx)
     blame_text = await openaiclient.prompt_blame(md.match, lang, vc)
     if vcargs:
@@ -208,7 +208,7 @@ async def blame(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
 
 
 @bot.command(name="listlive")
-async def listlive(ctx):
+async def listlive_cmd(ctx):
     matches = stratz.get_live_games()
     match_list = "\n\nHere is a list of currently live Dota 2 pro games: \n"
     for match in matches:
@@ -223,18 +223,18 @@ async def listlive(ctx):
 
 
 @bot.command(name='live')
-async def live(ctx, match_id: int):
-    guild_to_live_game[ctx.guild] = LiveMatch(ctx, match_id)
+async def live_cmd(ctx, match_id: int):
+    guild_to_live_game[ctx.guild] = live.LiveMatch(ctx, match_id)
     await guild_to_live_game[ctx.guild].start_live()
 
 
 @bot.command(name='stoplive')
-async def stop_live(ctx):
+async def stop_live_cmd(ctx):
     await guild_to_live_game[ctx.guild].stop_live()
 
 
 @bot.command(name='reg')
-async def reg(ctx, steam_acc: int):
+async def reg_cmd(ctx, steam_acc: int):
     query = {'discord_user': f'{ctx.message.author}'}
     old_user = userscol.find(query)
     for _ in old_user:
@@ -252,7 +252,7 @@ async def reg(ctx, steam_acc: int):
 
 
 @bot.command(name='unreg')
-async def unreg(ctx):
+async def unreg_cmd(ctx):
     query = {'discord_user': f'{ctx.message.author}'}
     old_user = userscol.find(query)
     for _ in old_user:
@@ -264,7 +264,7 @@ async def unreg(ctx):
 
 
 @bot.command(name="vc-join")
-async def vc_join(ctx):
+async def vc_join_cmd(ctx):
     voice_client, joined = await get_or_create_voice_client(ctx)
     if voice_client is None:
         await ctx.reply(
@@ -282,7 +282,7 @@ async def vc_join(ctx):
 
 
 @bot.command(name="vc-kick")
-async def vc_kick(ctx):
+async def vc_kick_cmd(ctx):
     if ctx.guild.id in guild_to_voice_client:
         voice_client, _ = guild_to_voice_client.pop(ctx.guild.id)
         await voice_client.disconnect()
@@ -311,8 +311,8 @@ async def get_or_create_voice_client(ctx):
     return voice_client, joined
 
 
-@bot.command()
-async def voices(ctx):
+@bot.command(name="voices")
+async def voices_cmd(ctx):
     logging.debug("!voices")
     file = discord.File(
         io.StringIO('\n'.join(uberduck_voices)),

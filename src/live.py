@@ -1,6 +1,6 @@
 from langchain.memory import ConversationSummaryBufferMemory
-import stratz
-from langchain import ConversationChain
+import src.stratz as stratz
+from langchain import ConversationChain, PromptTemplate
 from langchain import OpenAI
 from src import client
 
@@ -30,7 +30,7 @@ class LiveMatch:
         await self.ctx.send(
             f"Now following game between {self.teams[0].get('name')}({self.teams[0].get('countryCode')}) "
             f"and {self.teams[1].get('name')}({self.teams[1].get('countryCode')})")
-        self.conv_chain(
+        await self.conv_chain.arun(
             f"You are Dota 2 pro commentator, casting a live game between the following teams: {self.teams}, "
             f"updates of how the game is going will be provided in the form of "
             f"json-data from the Stratz API describing the game. Focus the "
@@ -51,7 +51,8 @@ class LiveMatch:
             if not match_status.get('isUpdating'):
                 # Check if the game has ended
                 if game_state == 'POST_GAME':
-                    await client.vc(self.ctx, "glados-p2", self.generate_game_end_summary())
+                    summary = await self.generate_game_end_summary()
+                    await client.vc(self.ctx, "glados-p2", summary)
                 else:
                     await self.ctx.send("The game is no longer updating. Live stream stopping")
 
@@ -60,29 +61,29 @@ class LiveMatch:
 
             # Check if we are in draft
             if game_state == 'HERO_SELECTION':
-                await client.vc(self.ctx, "glados-p2", self.generate_draft_commentary())
+                await client.vc(self.ctx, "glados-p2", await self.generate_draft_commentary())
 
             if game_state == 'GAME_IN_PROGRESS':
-                await client.vc(self.ctx, "glados-p2", self.generate_commentary())
+                await client.vc(self.ctx, "glados-p2", await self.generate_commentary())
 
-    def generate_commentary(self):
+    async def generate_commentary(self):
         match = stratz.get_live_match(self.match_id)
-        return self.conv_chain(f"Here is the data for the current state of the match: \n\n {match} \n\n Try not to "
+        return await self.conv_chain.arun(f"Here is the data for the current state of the match: \n\n {match} \n\n Try not to "
                                f"repeat yourself. Stick to the data and don't invent things."
                                f"Talk about the heros using mostly the player names. Analyse the game state "
                                f"and predict how the game will progress. "
                                f"The score represents kills. winRateValues represent the radiants chance to win at "
                                f"the corresponding minute. Try not to repeat yourself too much."
-                               f"Don't include a summary every time. Keep the commentary short and varied!")['response']
+                               f"Don't include a summary every time. Keep the commentary short and varied!")
 
-    def generate_game_end_summary(self):
+    async def generate_game_end_summary(self):
         match = stratz.get_live_match(self.match_id)
-        return self.conv_chain(f"The game just ended with this being the final data: \n\n {match} \n\n"
+        return await self.conv_chain.arun(f"The game just ended with this being the final data: \n\n {match} \n\n"
                                f"Give a summary of the game and explain why the winner won and the losers lost. Put "
                                f"it in a larger context in terms of the current tournament and the match history "
-                               f"between the two teams")['response']
+                               f"between the two teams")
 
-    def generate_draft_commentary(self):
+    async def generate_draft_commentary(self):
         match = stratz.get_live_draft(self.match_id)
-        return self.conv_chain(f"The teams are drafting their heroes. The current state of the draft is: \n\n {match} \n\n"
-                               f"Provide analytical insight into which team has the highest chances of winning and why.")['response']
+        return await self.conv_chain.arun(f"The teams are drafting their heroes. The current state of the draft is: \n\n {match} \n\n"
+                               f"Provide analytical insight into which team has the highest chances of winning and why.")
