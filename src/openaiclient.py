@@ -2,6 +2,7 @@ import logging
 import os
 
 from dotenv import load_dotenv
+from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from langchain.prompts import PromptTemplate
 from langchain import LLMChain
@@ -62,8 +63,8 @@ async def prompt_blame(match, lang, emoji=False):
     emoji_info = ""
     if emoji:
         emoji_info = "You may include some emojis from discord."
-    return await llm.agenerate(
-        [f"{default_prompt(match)} write a short and witty comment about what player is to blame for the loss. {emoji_info} {lang_preset(lang)}"])
+    return (await llm.agenerate(
+        [f"{default_prompt(match)} write a short and witty comment about what player is to blame for the loss. {emoji_info} {lang_preset(lang)}"]))
 
 
 async def prompt_gpt_tips(match, hero, lang):

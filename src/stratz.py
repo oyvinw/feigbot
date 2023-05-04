@@ -1,6 +1,7 @@
 import logging
 
 import requests
+from aiohttp import request
 import os
 import pymongo
 from dotenv import load_dotenv
@@ -18,7 +19,7 @@ itemscol = client.db.items
 
 
 # Update only when needed. i.e. when a patch drops
-def update_items():
+async def update_items():
     item_query = """
     {
     constants {
@@ -33,7 +34,9 @@ def update_items():
     """
     itemscol.drop()
 
-    r = requests.post(stratz_url, json={"query": item_query}, headers=headers).json()
+    async with request('POST', url=stratz_url, json={"query": item_query}, headers=headers) as response:
+        r = await response.json()
+
     item_list = []
     for item in r.get("data").get("constants").get("items"):
         item_id = item.get("id")
@@ -44,7 +47,7 @@ def update_items():
     logging.info("Items updated")
 
 
-def get_previous_match_id(steam_id):
+async def get_previous_match_id(steam_id):
     id_query = """
     {
         player(steamAccountId: %s) {
@@ -54,16 +57,16 @@ def get_previous_match_id(steam_id):
             }
     }""" % steam_id
 
-    r = requests.post(stratz_url, json={"query": id_query}, headers=headers)
+    async with request('POST', url=stratz_url, json={"query": id_query}, headers=headers) as response:
+        match_id = await response.json()
 
-    resp_dict = r.json()
     logging.info("Got previous match ID from Stratz")
-    if resp_dict.get("data").get("player").get("steamAccount") == "null":
+    if match_id.get("data").get("player").get("steamAccount") == "null":
         raise Exception(f"Steam account with steam id {steam_id} not found")
-    return resp_dict.get("data").get("player").get("matches")[0].get("id")
+    return match_id.get("data").get("player").get("matches")[0].get("id")
 
 
-def get_match(match_id):
+async def get_match(match_id):
     match_query = """
     {
     match(id: %s) {
@@ -108,7 +111,8 @@ def get_match(match_id):
         match_id
     )
 
-    match = requests.post(stratz_url, json={"query": match_query}, headers=headers).json()
+    async with request('POST', url=stratz_url, json={"query": match_query}, headers=headers) as response:
+        match = await response.json()
 
     get_items_for_players(match.get("data").get("match").get("players"))
     unparsed = match.get('data').get('match').get('parsedDateTime') == 'null'
@@ -120,7 +124,7 @@ def get_match(match_id):
         return match
 
 
-def get_live_match_initial(match_id):
+async def get_live_match_initial(match_id):
     live_query = """
     {
     live {
@@ -185,14 +189,15 @@ def get_live_match_initial(match_id):
         match_id
     )
 
-    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
-        'match')
+    async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
+        match = (await response.json()).get('data').get('live').get('match')
+
     get_items_for_players(match.get("players"))
     logging.info(f"Got live match {match_id} from Stratz")
     return match
 
 
-def get_live_match_status(match_id):
+async def get_live_match_status(match_id):
     live_query = """
     {
     live {
@@ -205,10 +210,12 @@ def get_live_match_status(match_id):
     """ % (
         match_id
     )
-    return requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get('match')
+    async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
+        return (await response.json()).get('data').get('live').get('match')
 
 
-def get_live_draft(match_id):
+# TODO: get hero names from ids
+async def get_live_draft(match_id):
     live_query = """
 {
   live {
@@ -243,11 +250,11 @@ def get_live_draft(match_id):
     """ % (
         match_id
     )
-    return requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
-        'match')
+    async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
+        return (await response.json()).get('data').get('live').get('match')
 
 
-def get_live_match(match_id):
+async def get_live_match(match_id):
     live_query = """
     {
     live {
@@ -294,14 +301,14 @@ def get_live_match(match_id):
         match_id
     )
 
-    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get(
-        'match')
+    async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
+        match = (await response.json()).get('data').get('live').get('match')
     get_items_for_players(match.get("players"))
     logging.info(f"Got live match {match_id} from Stratz")
     return match
 
 
-def get_live_games():
+async def get_live_games():
     live_query = """
 {
   live {
@@ -324,12 +331,13 @@ def get_live_games():
 }
     """
 
-    match = requests.post(stratz_url, json={"query": live_query}, headers=headers).json().get('data').get('live').get('matches')
+    async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
+        match = (await response.json()).get('data').get('live').get('matches')
     logging.info(f"Got list of live matches from Stratz")
     return match
 
 
-def get_team_info(team_ids: [int]):
+async def get_team_info(team_ids: [int]):
     team_query = """
     {
 	    teams(teamIds: %s){
@@ -343,7 +351,8 @@ def get_team_info(team_ids: [int]):
         team_ids
     )
 
-    return requests.post(stratz_url, json={"query": team_query}, headers=headers).json().get('data')
+    async with request('POST', url=stratz_url, json={"query": team_query}, headers=headers) as response:
+        return (await response.json()).get('data')
 
 
 def get_items_for_players(players):

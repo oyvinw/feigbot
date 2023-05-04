@@ -3,8 +3,10 @@ import datetime
 import io
 import logging
 import os
+import queue
 import subprocess
 import tempfile
+import librosa
 
 import discord
 import pymongo
@@ -45,6 +47,7 @@ userscol = client.db.users
 
 guild_to_voice_client = dict()
 guild_to_live_game = dict()
+guild_to_queue = dict()
 uberduck_client: UberDuck = uberduck.UberDuck(UBERDUCK_KEY, UBERDUCK_SECRET)
 uberduck_voices = uberduck.get_voices(return_only_names=True)
 
@@ -75,7 +78,7 @@ async def on_command_error(ctx, error):
 
 async def get_match(ctx, match_id):
     steam_id = get_steam_id(ctx.message.author)
-    match = stratz.get_match(match_id)
+    match = await stratz.get_match(match_id)
 
     if not match:
         await ctx.reply("No game found!")
@@ -84,13 +87,13 @@ async def get_match(ctx, match_id):
     return MatchData(match, steam_id)
 
 
-def get_previous_match_id_from_author(author):
+async def get_previous_match_id_from_author(author):
     steam_id = get_steam_id(author)
-    return stratz.get_previous_match_id(steam_id)
+    return await stratz.get_previous_match_id(steam_id)
 
 
 async def get_previous_match(ctx):
-    return await get_match(ctx, get_previous_match_id_from_author(ctx.message.author))
+    return await get_match(ctx, await get_previous_match_id_from_author(ctx.message.author))
 
 
 @bot.command(name="perf", help="Use this command to see how you did last game")
@@ -209,7 +212,7 @@ async def blame_cmd(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
 
 @bot.command(name="listlive")
 async def listlive_cmd(ctx):
-    matches = stratz.get_live_games()
+    matches = await stratz.get_live_games()
     match_list = "\n\nHere is a list of currently live Dota 2 pro games: \n"
     for match in matches:
         match_list = f"{match_list}```\n"
@@ -328,7 +331,6 @@ async def vc(ctx, voice, speech):
         voice_client, _ = await get_or_create_voice_client(ctx)
         guild_to_voice_client[ctx.guild.id] = (voice_client, datetime.datetime)
         logging.info("Audio data generated from Uberduck")
-        await asyncio.sleep(0.3)
 
     with tempfile.NamedTemporaryFile(
             suffix=".wav", delete=False
