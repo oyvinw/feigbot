@@ -147,7 +147,7 @@ class LiveMatch:
             print("Detected audio in buffer")
             timestamp, audio = self.voice_buffer.get()
             ##120 sek delay for testing
-            timestamp_with_delay = timestamp + datetime.timedelta(seconds=120)
+            timestamp_with_delay = timestamp + datetime.timedelta(seconds=180)
             print(f"playing at {timestamp_with_delay}")
             while datetime.datetime.now() < timestamp_with_delay:
                 print("waiting..")
