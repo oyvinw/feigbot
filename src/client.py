@@ -216,10 +216,13 @@ async def listlive_cmd(ctx):
     match_list = "\n\nHere is a list of currently live Dota 2 pro games: \n"
     for match in matches:
         match_list = f"{match_list}```\n"
-        match_list = f"{match_list}{match.get('radiantTeam').get('name')} VS {match.get('direTeam').get('name')}\n"
-        match_list = f"{match_list}Match Id: {match.get('matchId')}\n"
-        match_list = f"{match_list}Leauge: {match.get('league').get('displayName')}\n"
-        match_list = f"{match_list}Tier: {match.get('league').get('tier')}\n"
+        try:
+            match_list = f"{match_list}{match.get('radiantTeam').get('name')} VS {match.get('direTeam').get('name')}\n"
+            match_list = f"{match_list}Match Id: {match.get('matchId')}\n"
+            match_list = f"{match_list}Leauge: {match.get('league').get('displayName')}\n"
+            match_list = f"{match_list}Tier: {match.get('league').get('tier')}\n"
+        except:
+            match_list = f"{match_list}No live games found!"
         match_list = f"{match_list}```\n"
 
     await ctx.reply(match_list)

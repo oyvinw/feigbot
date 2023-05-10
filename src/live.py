@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 import discord
+import numpy
 
 import librosa
 import uberduck
@@ -15,8 +16,9 @@ from uberduck import UberDuck
 
 import src.stratz as stratz
 from langchain import ConversationChain
+
+import src.util
 from src import client
-import threading
 import queue
 
 load_dotenv()
@@ -69,7 +71,8 @@ class LiveMatch:
             f"json-data from the Stratz API describing the game. Focus the "
             f"commentary on things the audience might find interesting and how the "
             f"game is progressing and has changed between the updates. Don't mention the "
-            f"updates themselves, but pretend that you can tell what is happening by looking at the game.")
+            f"updates themselves, but pretend that you can tell what is happening by looking at the game. Keep all "
+            f"responses to under 700 characters")
 
         update_task = asyncio.create_task(self.update_live())
         voice_task = asyncio.create_task(self.voice_worker())
@@ -93,21 +96,32 @@ class LiveMatch:
             self.next_poll = datetime.datetime.max
             match_status = await stratz.get_live_match_status(self.match_id)
             game_state = match_status.get('gameState')
+            text = ""
             # Check if the game is updating
             if not match_status.get('isUpdating'):
                 # Check if the game has ended
                 if game_state == 'POST_GAME':
-                    self.text_buffer.put((now, await self.generate_game_end_summary()))
+                    text = await self.generate_game_end_summary()
                 else:
                     await self.ctx.send("The game is no longer updating. Live stream stopping")
 
             # Check if we are in draft
             if game_state == 'HERO_SELECTION':
-                self.text_buffer.put((now, await self.generate_draft_commentary()))
+                text = await self.generate_draft_commentary()
 
             if game_state == 'GAME_IN_PROGRESS':
-                self.text_buffer.put((now, await self.generate_commentary()))
+                text = await self.generate_commentary()
 
+            # Chunking text to smaller sizes in order to keep within limits of the voice API
+            sentences = src.util.split_into_sentences(text)
+            parts = (len(text) / 500) + 1
+            for section in numpy.array_split(sentences, parts):
+                section_text = ' '.join(section)
+                self.text_buffer.put((now, section_text))
+                print(section_text)
+
+            print("---GET DATA---")
+            print(f"timestamp: {now}")
             print(f"text buffer length: {self.text_buffer.qsize()}")
             print(f"voice buffer length: {self.voice_buffer.qsize()}")
 
@@ -117,8 +131,13 @@ class LiveMatch:
                 await asyncio.sleep(0.2)
                 continue
 
+            print("---GET VOICE---")
             timestamp, text = self.text_buffer.get()
+            print(f"timestamp: {timestamp}")
+            print(f"requesting data from uberduck")
             audio_data = await uberduck_client.speak_async(text, "glados-p2", check_every=1)
+            print(f"audio data recieved from uberduck")
+            print(f"ffmpeg encoding started")
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_f, tempfile.NamedTemporaryFile(suffix=".opus",
                                                                                                   delete=False) as opus_f:
                 wav_f.write(audio_data)
@@ -126,14 +145,17 @@ class LiveMatch:
                 subprocess.check_call(["ffmpeg", "-y", "-i", wav_f.name, opus_f.name])
                 self.voice_buffer.put((timestamp, opus_f))
 
-            self.next_poll = datetime.datetime.now() + datetime.timedelta(
-                    seconds=librosa.get_duration(path=wav_f.name))
+                clip_duration = librosa.get_duration(path=opus_f.name)
+                self.next_poll = timestamp + datetime.timedelta(
+                    seconds=clip_duration)
+                print(f"clip added to queue of length {clip_duration}")
 
             try:
                 os.remove(wav_f.name)
             except:
                 logging.warning("Could not remove temp-file")
 
+            print(f"ffmpeg encoding finished")
             print(f"text buffer length: {self.text_buffer.qsize()}")
             print(f"voice buffer length: {self.voice_buffer.qsize()}")
             self.text_buffer.task_done()
@@ -144,16 +166,16 @@ class LiveMatch:
                 await asyncio.sleep(0.2)
                 continue
 
+            print("---PLAY CLIP---")
             print("Detected audio in buffer")
             timestamp, audio = self.voice_buffer.get()
-            ##120 sek delay for testing
-            timestamp_with_delay = timestamp + datetime.timedelta(seconds=180)
-            print(f"playing at {timestamp_with_delay}")
+            timestamp_with_delay = timestamp + datetime.timedelta(seconds=90)
+            print(f"Timestamp for clip is {timestamp}")
+            print(f"clip queued to play at: {timestamp_with_delay}")
             while datetime.datetime.now() < timestamp_with_delay:
-                print("waiting..")
                 await asyncio.sleep(0.2)
 
-            print(f"PLAYING!")
+            print(f"Playing clip!")
             source = discord.FFmpegOpusAudio(audio.name)
             self.voice_client.play(source, after=None)
             while self.voice_client.is_playing():
