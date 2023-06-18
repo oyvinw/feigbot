@@ -131,6 +131,7 @@ async def get_live_match_initial(match_id):
         match(id: %s) {
             gameMinute
             gameState
+            gameMode
             isUpdating
             league {
                 displayName
@@ -308,11 +309,15 @@ async def get_live_match(match_id):
     return match
 
 
-async def get_live_games():
+async def get_live_games(pro_only):
+    match_filter = ""
+    if pro_only:
+        match_filter = "(request: {isCompleted: false, tiers: [MAJOR, DPC_LEAGUE, DPC_QUALIFIER, DPC_LEAGUE_FINALS, DPC_LEAGUE_QUALIFIER, MINOR, INTERNATIONAL, PROFESSIONAL]})"
+
     live_query = """
 {
   live {
-    matches(request: {isCompleted: false, tiers: [MAJOR, DPC_LEAGUE, DPC_QUALIFIER, DPC_LEAGUE_FINALS, DPC_LEAGUE_QUALIFIER, MINOR, INTERNATIONAL, PROFESSIONAL]}) {
+    matches%s {
       matchId
       gameMode
       isUpdating
@@ -329,7 +334,9 @@ async def get_live_games():
     }
   }
 }
-    """
+    """ % (
+        match_filter
+    )
 
     async with request('POST', url=stratz_url, json={"query": live_query}, headers=headers) as response:
         match = (await response.json()).get('data').get('live').get('matches')

@@ -211,26 +211,35 @@ async def blame_cmd(ctx, lang="eng", vcargs="", voice="oblivion-guard"):
 
 
 @bot.command(name="listlive")
-async def listlive_cmd(ctx):
-    matches = await stratz.get_live_games()
+async def listlive_cmd(ctx, arg=""):
+    pro_only = True
+    if arg == "-a":
+        pro_only = False
+
+    matches = await stratz.get_live_games(pro_only)
+
+    if not matches:
+        await ctx.reply("No live games found!")
+        return
+
     match_list = "\n\nHere is a list of currently live Dota 2 pro games: \n"
     for match in matches:
         match_list = f"{match_list}```\n"
+        match_list = f"{match_list}Match Id: {match.get('matchId')}\n"
         try:
             match_list = f"{match_list}{match.get('radiantTeam').get('name')} VS {match.get('direTeam').get('name')}\n"
-            match_list = f"{match_list}Match Id: {match.get('matchId')}\n"
-            match_list = f"{match_list}Leauge: {match.get('league').get('displayName')}\n"
+            match_list = f"{match_list}League: {match.get('league').get('displayName')}\n"
             match_list = f"{match_list}Tier: {match.get('league').get('tier')}\n"
         except:
-            match_list = f"{match_list}No live games found!"
+            match_list = f"{match_list}Non-league game\n"
         match_list = f"{match_list}```\n"
 
     await ctx.reply(match_list)
 
 
 @bot.command(name='live')
-async def live_cmd(ctx, match_id: int):
-    guild_to_live_game[ctx.guild] = live.LiveMatch(ctx, match_id)
+async def live_cmd(ctx, match_id: int, voice="glados-p2"):
+    guild_to_live_game[ctx.guild] = live.LiveMatch(ctx, match_id, voice)
     await guild_to_live_game[ctx.guild].start_live()
 
 

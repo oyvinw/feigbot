@@ -2,6 +2,7 @@ import asyncio
 import datetime
 import logging
 import os
+import random
 import subprocess
 import tempfile
 import discord
@@ -28,7 +29,7 @@ uberduck_client: UberDuck = uberduck.UberDuck(UBERDUCK_KEY, UBERDUCK_SECRET)
 
 
 class LiveMatch:
-    def __init__(self, ctx, match_id: int):
+    def __init__(self, ctx, match_id: int, voice):
         self.match_id = match_id
         self.ctx = ctx
         self.teams = None
@@ -41,6 +42,8 @@ class LiveMatch:
         self.voice_buffer = queue.Queue()
         self.next_poll = None
         self.voice_client = None
+        self.is_pub = False
+        self.voice = voice
 
     async def start_live(self):
         md = await stratz.get_live_match_initial(self.match_id)
@@ -49,6 +52,7 @@ class LiveMatch:
         self.teams = []
         self.league_data = md.get('league')
         self.insight_data = md.get('insight')
+        self.is_pub = md.get('gameMode') == 'ALL_PICK_RANKED'
         self.teams.append(md.get('radiantTeam'))
         self.teams.append(md.get('direTeam'))
         self.llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.9)
@@ -62,9 +66,12 @@ class LiveMatch:
         )
         self.live = True
 
-        await self.ctx.send(
-            f"Now following game between {self.teams[0].get('name')}({self.teams[0].get('countryCode')}) "
-            f"and {self.teams[1].get('name')}({self.teams[1].get('countryCode')})")
+        if not self.is_pub:
+            await self.ctx.send(
+                f"Now following game between {self.teams[0].get('name')} "
+                f"and {self.teams[1].get('name')})")
+        else:
+            await self.ctx.send(f"Now following pub game {self.match_id}")
         await self.conv_chain.arun(
             f"You are Dota 2 pro commentator, casting a live game between the following teams: {self.teams}, "
             f"updates of how the game is going will be provided in the form of "
@@ -87,6 +94,7 @@ class LiveMatch:
         await self.ctx.reply("Stopping live update")
 
     async def update_live(self):
+        print("---UPDATE---")
         while self.live:
             now = datetime.datetime.now()
             if self.next_poll > now:
@@ -102,8 +110,9 @@ class LiveMatch:
                 # Check if the game has ended
                 if game_state == 'POST_GAME':
                     text = await self.generate_game_end_summary()
-                else:
-                    await self.ctx.send("The game is no longer updating. Live stream stopping")
+
+                await self.ctx.send("The game is no longer updating. Live stream stopping")
+                self.live = False
 
             # Check if we are in draft
             if game_state == 'HERO_SELECTION':
@@ -113,20 +122,22 @@ class LiveMatch:
                 text = await self.generate_commentary()
 
             # Chunking text to smaller sizes in order to keep within limits of the voice API
-            sentences = src.util.split_into_sentences(text)
-            parts = (len(text) / 500) + 1
-            for section in numpy.array_split(sentences, parts):
-                section_text = ' '.join(section)
-                self.text_buffer.put((now, section_text))
-                print(section_text)
 
-            print("---GET DATA---")
+            self.buffer(now, text)
             print(f"timestamp: {now}")
             print(f"text buffer length: {self.text_buffer.qsize()}")
             print(f"voice buffer length: {self.voice_buffer.qsize()}")
 
+    def buffer(self, now, text):
+        sentences = src.util.split_into_sentences(text)
+        parts = (len(text) / 500) + 1
+        for section in numpy.array_split(sentences, parts):
+            section_text = ' '.join(section)
+            self.text_buffer.put((now, section_text))
+            print(section_text)
+
     async def voice_worker(self):
-        while self.live:
+        while self.live or self.text_buffer.not_empty:
             if self.text_buffer.empty() is True:
                 await asyncio.sleep(0.2)
                 continue
@@ -135,7 +146,7 @@ class LiveMatch:
             timestamp, text = self.text_buffer.get()
             print(f"timestamp: {timestamp}")
             print(f"requesting data from uberduck")
-            audio_data = await uberduck_client.speak_async(text, "glados-p2", check_every=1)
+            audio_data = await uberduck_client.speak_async(text, self.voice, check_every=1)
             print(f"audio data recieved from uberduck")
             print(f"ffmpeg encoding started")
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_f, tempfile.NamedTemporaryFile(suffix=".opus",
@@ -148,7 +159,7 @@ class LiveMatch:
                 clip_duration = librosa.get_duration(path=opus_f.name)
                 self.next_poll = timestamp + datetime.timedelta(
                     seconds=clip_duration)
-                print(f"clip added to queue of length {clip_duration}")
+                print(f"next poll set to {self.next_poll}")
 
             try:
                 os.remove(wav_f.name)
@@ -161,7 +172,7 @@ class LiveMatch:
             self.text_buffer.task_done()
 
     async def vc_play_enqueued(self):
-        while self.live:
+        while self.live or self.voice_buffer.not_empty:
             if self.voice_buffer.empty() is True:
                 await asyncio.sleep(0.2)
                 continue
@@ -169,7 +180,7 @@ class LiveMatch:
             print("---PLAY CLIP---")
             print("Detected audio in buffer")
             timestamp, audio = self.voice_buffer.get()
-            timestamp_with_delay = timestamp + datetime.timedelta(seconds=90)
+            timestamp_with_delay = timestamp + datetime.timedelta(seconds=60)
             print(f"Timestamp for clip is {timestamp}")
             print(f"clip queued to play at: {timestamp_with_delay}")
             while datetime.datetime.now() < timestamp_with_delay:
@@ -188,14 +199,31 @@ class LiveMatch:
 
     async def generate_commentary(self):
         match = await stratz.get_live_match(self.match_id)
-        return await self.conv_chain.arun(
-            f"Here is the data for the current state of the match: \n\n {match} \n\n Try not to "
-            f"repeat yourself. Stick to the data and don't invent things. "
-            f"Talk about the heroes using mostly the player names. Analyse the game state "
-            f"and predict how the game will progress. "
+        data = f"Here is the data for the current state of the match: \n\n {match} \n\n"
+
+        alternatives = [
+            f"Analyse the game and predict how the game will progress. "
             f"The score represents kills. winRateValues represent the radiants chance to win at "
-            f"the corresponding minute. Try not to repeat yourself too much."
-            f"Don't include a summary every time. Keep the commentary short and varied!")
+            f"the corresponding minute. Try not to repeat yourself too much. Keep the commentary short and varied!",
+
+            f"Identify and analyse the play of a specific player.",
+
+            f"Talk about one of the teams, try to find out what makes this team unique.",
+
+            f"Talk about the strategy the team that is behind in this game need to employ in order to win. "
+            f"What heroes and players are key in order to execute that strategy?",
+
+            f"Talk about some interesting item choices a player has made.",
+
+            f"Talk about the history between these two teams",
+
+            f"Talk about the league standings, and how this game fits in to the larger picture",
+
+            f"Talk about what objectives the teams need to accomplish this game"
+        ]
+
+        prompt = data + random.choice(alternatives)
+        return await self.conv_chain.arun(prompt)
 
     async def generate_game_end_summary(self):
         match = await stratz.get_live_match(self.match_id)
