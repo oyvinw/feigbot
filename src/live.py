@@ -16,6 +16,7 @@ from langchain.memory import ConversationSummaryBufferMemory
 from uberduck import UberDuck
 
 import src.stratz as stratz
+import src.polly as polly
 from langchain import ConversationChain
 
 import src.util
@@ -79,7 +80,7 @@ class LiveMatch:
             f"commentary on things the audience might find interesting and how the "
             f"game is progressing and has changed between the updates. Don't mention the "
             f"updates themselves, but pretend that you can tell what is happening by looking at the game. Keep all "
-            f"responses to under 700 characters")
+            f"responses to under 700 characters.")
 
         update_task = asyncio.create_task(self.update_live())
         voice_task = asyncio.create_task(self.voice_worker())
@@ -146,7 +147,8 @@ class LiveMatch:
             timestamp, text = self.text_buffer.get()
             print(f"timestamp: {timestamp}")
             print(f"requesting data from uberduck")
-            audio_data = await uberduck_client.speak_async(text, self.voice, check_every=1)
+            #audio_data = await uberduck_client.speak_async(text, self.voice, check_every=1)
+            audio_data = polly.get_polly_voice(text)
             print(f"audio data recieved from uberduck")
             print(f"ffmpeg encoding started")
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as wav_f, tempfile.NamedTemporaryFile(suffix=".opus",
